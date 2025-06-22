@@ -1,9 +1,8 @@
 package com.mislbd.report_manager.entity;
 
-import jakarta.annotation.Nonnull;
-import jakarta.persistence.*;
-import lombok.Data;
-import org.springframework.validation.annotation.Validated;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.util.Date;
 
@@ -11,35 +10,32 @@ import java.util.Date;
 @Table(name = "RPT_EMPLOYEE")
 public class Employee {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator ="EMPLOYEE_ID_GENERATOR")
-    @SequenceGenerator(name = "EMPLOYEE_ID_GENERATOR", sequenceName = "RPT_EMPLOYEE_SEQUENCE",
-    allocationSize = 1)
-    private Long employeeId;
-
-    @Column(length = 100,  nullable = false,  unique = true)
+    private Integer employeeId;
     private String firstName;
-
     private String lastName;
-    @Nonnull
     private String email;
-
-
-
     private String phone;
     private String address;
     private Date dateOfBirth;
-    @Lob
-    private String remarks;
 
+    public Employee(Integer employeeId, String firstName, String lastName, String email, String phone, String address, Date dateOfBirth) {
+        this.employeeId = employeeId;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.phone = phone;
+        this.address = address;
+        this.dateOfBirth = dateOfBirth;
+    }
 
     public Employee() {
     }
 
-    public Long getEmployeeId() {
+    public Integer getEmployeeId() {
         return employeeId;
     }
 
-    public void setEmployeeId(Long employeeId) {
+    public void setEmployeeId(Integer employeeId) {
         this.employeeId = employeeId;
     }
 
@@ -59,16 +55,13 @@ public class Employee {
         this.lastName = lastName;
     }
 
-    @Nonnull
     public String getEmail() {
         return email;
     }
 
-    public void setEmail(@Nonnull String email) {
+    public void setEmail(String email) {
         this.email = email;
     }
-
-
 
     public String getPhone() {
         return phone;
@@ -92,13 +85,5 @@ public class Employee {
 
     public void setDateOfBirth(Date dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
-    }
-
-    public String getRemarks() {
-        return remarks;
-    }
-
-    public void setRemarks(String remarks) {
-        this.remarks = remarks;
     }
 }

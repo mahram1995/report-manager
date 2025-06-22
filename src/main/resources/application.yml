@@ -3,14 +3,14 @@ spring:
   application:
     name: webapp
   datasource:
-    url: jdbc:oracle:thin:@localhost:1521:xe
+    url: jdbc:oracle:thin:@localhost:1521:devdb
     driver-class-name: oracle.jdbc.OracleDriver
     username: hims
     password: root
   jpa:
     database-platform: org.hibernate.dialect.OracleDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     properties:
         hibernate:
           format_sql: true
@@ -18,4 +18,4 @@ spring:
 
 
 server:
-  port: 4040
+  port: 5050
