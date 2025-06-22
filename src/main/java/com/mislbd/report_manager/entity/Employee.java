@@ -1,22 +1,33 @@
 package com.mislbd.report_manager.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.util.Date;
 
 @Entity
 @Table(name = "RPT_EMPLOYEE")
 public class Employee {
-    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "employee_seq")
+    @SequenceGenerator(name = "employee_seq", sequenceName = "EMPLOYEE_SEQ", allocationSize = 1)@Id
     private Integer employeeId;
+    @Column(length = 100,  nullable = false)
     private String firstName;
     private String lastName;
     private String email;
+
+    @Column(unique = true)
     private String phone;
     private String address;
+    @ManyToOne
+    @JoinColumn(
+            name = "department_id",
+            foreignKey = @ForeignKey(name = "FK_EMPLOYEE_DEPARTMENT")
+    )
+    private Department department;
     private Date dateOfBirth;
+    @Lob
+    private String remarks;
+
 
     public Employee(Integer employeeId, String firstName, String lastName, String email, String phone, String address, Date dateOfBirth) {
         this.employeeId = employeeId;
@@ -85,5 +96,21 @@ public class Employee {
 
     public void setDateOfBirth(Date dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
+    }
+
+    public Department getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(Department department) {
+        this.department = department;
+    }
+
+    public String getRemarks() {
+        return remarks;
+    }
+
+    public void setRemarks(String remarks) {
+        this.remarks = remarks;
     }
 }

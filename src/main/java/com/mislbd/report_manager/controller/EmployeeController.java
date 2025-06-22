@@ -1,6 +1,7 @@
 package com.mislbd.report_manager.controller;
 
 import com.mislbd.report_manager.domain.EmployeeDomain;
+import com.mislbd.report_manager.entity.Department;
 import com.mislbd.report_manager.entity.Employee;
 import com.mislbd.report_manager.service.EmployeeService;
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,7 @@ import java.util.Objects;
 @RestController
 @RequestMapping("/employees")
 public class EmployeeController {
-   private  final EmployeeService employeeService;
+    private final EmployeeService employeeService;
 
     public EmployeeController(EmployeeService employeeService) {
         this.employeeService = employeeService;
@@ -26,21 +27,20 @@ public class EmployeeController {
     }
 
     @GetMapping(path = "save-employee")
-    public String saveEmployee() {
+    public Employee saveEmployee() {
 
-        Employee emp=new Employee();
+        Employee emp = new Employee();
 
-        emp.setEmployeeId(101);
         emp.setFirstName("Mahram");
         emp.setEmail("mahram@mislbd.com");
         emp.setPhone("01710298374");
         emp.setAddress("Dhaka, Mirpur, Bangladesh");
+        emp.setDepartment(new Department(101L, "Admin"));
 
         employeeService.saveEmployee(emp);
 
 
-
-        return  "Save successfully";
+        return emp;
     }
 
 
