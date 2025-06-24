@@ -4,6 +4,8 @@ import com.mislbd.report_manager.domain.EmployeeDomain;
 import com.mislbd.report_manager.entity.Department;
 import com.mislbd.report_manager.entity.Employee;
 import com.mislbd.report_manager.service.EmployeeService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +37,7 @@ public class EmployeeController {
         emp.setEmail("mahram@mislbd.com");
         emp.setPhone("01710298374");
         emp.setAddress("Dhaka, Mirpur, Bangladesh");
-        emp.setDepartment(new Department(101L, "Admin"));
+        emp.setDepartment(new Department(101, "Admin"));
 
         employeeService.saveEmployee(emp);
 
@@ -44,15 +46,24 @@ public class EmployeeController {
     }
 
 
-    private List<EmployeeDomain> getEmployees(
-            @RequestParam(name = "page", defaultValue = "0", required = false) int page,
-            @RequestParam(name = "size", defaultValue = "10") int size,
-            @RequestParam(name = "sort", defaultValue = "id,asc") String sort
+    @GetMapping(path = "get-employee")
+    private Page<Employee> getEmployees(
+            Pageable pageable
     ) {
+        return employeeService.getAllEmployee(pageable);
+    }
 
-        return List.of(
+    @GetMapping(path = "get-employee/{employeeId}")
+    private List<Employee> getEmployee( @PathVariable(name = "employeeId")Integer id
+    ) {
+        return employeeService.getEmployeeByID(id);
+    }
 
-        );
+    @GetMapping(path = "get-employee-by-name/{firstName}/{lastName}")
+    private List<Employee> getEmployeeByName( @PathVariable  (name = "firstName") String firstName,
+                                        @PathVariable  (name = "lastName") String lastName
+    ) {
+        return employeeService.getEmployeeByFirstNameOrLastName(firstName,lastName);
     }
 
     @GetMapping("/{employeeId}")
