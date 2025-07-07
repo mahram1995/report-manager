@@ -2,15 +2,10 @@ package com.mislbd.report_manager.entity;
 
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+
 
 @Data
-@Setter
-@Getter
-@AllArgsConstructor
 @Entity(name = "branch")
 public class BranchEntity {
     @Id
@@ -45,6 +40,7 @@ public class BranchEntity {
     private String villageName;
     public BranchEntity()  {
     }
+
 
 }
 
