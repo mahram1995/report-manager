@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "CIS_CUSTOMER")
+@Table(name = "RPT_CUSTOMER")
 public class CustomerEntity {
 
     @Id
@@ -14,11 +14,11 @@ public class CustomerEntity {
             name = "cis_id_generator",
             allocationSize = 1,
             sequenceName = "cis_sequence")
-    private Long cusId;
+    private Integer cusId;
 
     private String isActive;
 
-    private Long branchId;
+    private Integer branchId;
 
     private String customerType;
 
@@ -30,11 +30,11 @@ public class CustomerEntity {
 
     private String isPriorityCustomer;
 
-    private Long businessUnitId;
+    private Integer businessUnitId;
 
     private String secondaryRelationshipOfficer;
 
-    private Long customerClassId;
+    private Integer customerClassId;
 
     private String cusShortName;
 
@@ -48,15 +48,15 @@ public class CustomerEntity {
 
     private String mobileNumber;
 
-    private Long countryId;
+    private Integer countryId;
 
-    private Long districtId;
+    private Integer districtId;
 
-    private Long divisionId;
+    private Integer divisionId;
 
-    private Long postCodeId;
+    private Integer postCodeId;
 
-    private Long upazillaId;
+    private Integer upazillaId;
 
     private String title;
 
@@ -81,12 +81,6 @@ public class CustomerEntity {
     private String negativeListReason;
 
     private String isNegativeListedCustomer;
-
-    private Long version;
-
-    private Long groupId;
-
-    private String rowId;
 }
 
 

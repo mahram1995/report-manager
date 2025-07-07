@@ -1,11 +1,16 @@
 package com.mislbd.report_manager.service;
 
+import com.mislbd.report_manager.criteria.CustomerSearchCriteria;
 import com.mislbd.report_manager.entity.CustomerEntity;
 import com.mislbd.report_manager.repository.CustomerRepo;
 import com.mislbd.report_manager.specification.CustomerSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class CustomerService {
@@ -15,42 +20,14 @@ public class CustomerService {
         this.customerRepo = customerRepo;
     }
 
-    public Page<CustomerEntity> getAllCustomer(Pageable pageable){
+    public Page<CustomerEntity> getAllCustomer(Pageable pageable) {
         return customerRepo.findAll(pageable);
 
     }
 
-    public Page<CustomerEntity> searchCustomer( Long cusId,String isActive,
-                                               Long branchId,
-                                               String customerType,
-                                               String gender,
-                                               String mobileNumber,
-                                               Long countryId,
-                                               Long districtId,
-                                               Long divisionId,
-                                               Long postCodeId,
-                                               Long upazillaId,
-                                               String isNidReceived,
-                                               String isSuspended,
-                                               String isVerified,
-                                               String isNegativeListedCustomer, Pageable pageable){
+    public Page<CustomerEntity> searchCustomer(CustomerSearchCriteria criteria, Pageable pageable) {
 
-
-        return customerRepo.findAll((Pageable) CustomerSpecification.searchCustomer(cusId,
-                isActive,
-                branchId,
-                customerType,
-                gender,
-                mobileNumber,
-                countryId,
-                districtId,
-                divisionId,
-                postCodeId,
-                upazillaId,
-                isNidReceived,
-                isSuspended,
-                isVerified,
-                isNegativeListedCustomer));
-
+        Specification<CustomerEntity> spec = CustomerSpecification.getCustomerSpecification(criteria);
+        return customerRepo.findAll(spec,pageable);
     }
 }
