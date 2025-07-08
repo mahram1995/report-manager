@@ -7,6 +7,7 @@ spring:
     driver-class-name: oracle.jdbc.OracleDriver
     username: hims
     password: root
+
   jpa:
     database-platform: org.hibernate.dialect.OracleDialect
     hibernate:
@@ -19,3 +20,5 @@ spring:
 
 server:
   port: 5050
+
+spring.mvc.pathmatch.matching-strategy: ant_path_matcher
