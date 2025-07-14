@@ -1,14 +1,12 @@
-package com.mislbd.report_manager.controller;
+package com.mislbd.report_manager.controller.customer;
 
 import com.mislbd.report_manager.criteria.CustomerSearchCriteria;
 import com.mislbd.report_manager.entity.CustomerEntity;
 import com.mislbd.report_manager.service.CustomerService;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "http://localhost:4200")
 @RestController
@@ -21,19 +19,17 @@ public class CustomerController {
     }
 
     @GetMapping(path = "get-customer")
-    private Page<CustomerEntity> getBranches(
+    private Page<CustomerEntity> getCustomer(
             Pageable pageable
     ) {
         return  customerService.getAllCustomer(pageable);
     }
 
-    @GetMapping("/search")
+    @GetMapping(path = {"searchCustomer"})
     public Page<CustomerEntity> searchCustomers(
-            Pageable pageable,
-            CustomerSearchCriteria criteria
+            @ParameterObject  Pageable pageable,
+            @ParameterObject  CustomerSearchCriteria criteria
     ) {
-
-
         return customerService.searchCustomer(criteria,pageable);
     }
 }
