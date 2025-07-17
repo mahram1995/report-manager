@@ -4,12 +4,14 @@ import com.mislbd.report_manager.configuration.JwtUtil;
 import com.mislbd.report_manager.configuration.SecurityConfig;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
+import com.mislbd.report_manager.domain.admin.UserResponseDomain;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.entity.admin.UserLoginInfoEntity;
 import com.mislbd.report_manager.repository.admin.SecuUserRepository;
 import com.mislbd.report_manager.repository.admin.UserLoginInfoRepository;
 import com.mislbd.report_manager.service.admin.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +22,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
+@Transactional
 public class AuthServiceImpl implements AuthService {
     @Autowired
     private AuthenticationManager authManager;
@@ -37,27 +39,22 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public ResponseEntity<?> saveUser(UserEntity data) {
-        UserEntity user = new UserEntity();
-        user.setUserName(data.getUserName());
-        user.setPassword(encoder.encode(data.getPassword()));
-        user.setEmail(data.getEmail());
-        user.setUserPhoto(data.getUserPhoto() != null ? data.getUserPhoto() : null);
-        userRepo.save(user);
+        data.setPassword(encoder.encode(data.getPassword()));
+        data.setUserPhoto(data.getUserPhoto() != null ? data.getUserPhoto() : null);
+        userRepo.save(data);
         return ResponseEntity.ok("Registered");
     }
 
     @Override
-    public ResponseEntity<?> login(AuthRequestDomain request, HttpServletRequest httpRequest) {
+    public ResponseEntity<UserResponseDomain> login(AuthRequestDomain request, HttpServletRequest httpRequest) {
         Optional<UserEntity> user = userRepo.findByUserName(request.getUserName());
 
         if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("User name is incorrect");
+          //  return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("");
         }
 
         if (!securityConfig.passwordEncoder().matches(request.getPassword(), user.get().getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Password is incorrect");
+          //  return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Password is incorrect");
         }
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUserName(), request.getPassword()));
@@ -71,7 +68,21 @@ public class AuthServiceImpl implements AuthService {
         loginRepo.save(loginInfo);
 
         String token = jwtUtil.generateToken(request.getUserName());
-        return ResponseEntity.ok(Map.of("token", token));
+
+        UserResponseDomain domain=new UserResponseDomain();
+        domain.setEmail(user.get().getEmail());
+        domain.setUserName(user.get().getUserName());
+        domain.setDepartmentId(user.get().getDepartmentId());
+        domain.setLastName(user.get().getLastName());
+        domain.setFirstName(user.get().getFirstName());
+        domain.setLastName(user.get().getLastName());
+        domain.setMiddleName(user.get().getMiddleName());
+        domain.setGroupId(user.get().getGroupId());
+        domain.setToken(token);
+        domain.setUserBranchId(user.get().getUserBranchId());
+
+
+        return ResponseEntity.ok(domain);
     }
 
     @Override
