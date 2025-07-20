@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 
 @RestController
 @RequestMapping("/admin/auth")
@@ -25,13 +26,18 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(AuthRequestDomain request, HttpServletRequest httpRequest) {
-        return authService.login(request,httpRequest);
+    public ResponseEntity<?> login(@RequestBody  AuthRequestDomain request) {
+        try {
+            return authService.login(request);
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestParam("username") String username) {
-       return  authService.logout(username);
+    @GetMapping("/logout")
+    public ResponseEntity<String> logout(@RequestParam("userName") String userName ,
+                                         @RequestParam("logoutType") String logoutType) {
+       return  authService.logout(userName,logoutType);
     }
 
     @PostMapping("/change-password")

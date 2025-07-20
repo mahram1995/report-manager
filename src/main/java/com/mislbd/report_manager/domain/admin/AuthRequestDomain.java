@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 
 @Setter
 @Getter
-@ParameterObject
 public class AuthRequestDomain {
     String userName;
     String password;
     String loginTerminal;
+    String userAgent;
 }

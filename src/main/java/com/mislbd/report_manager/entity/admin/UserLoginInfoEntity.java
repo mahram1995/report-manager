@@ -20,6 +20,7 @@ public class UserLoginInfoEntity {
     private LocalDateTime logoutTime;
     private String loginTerminal;
     private String loginDeviseName;
+    private String logoutType;
 
     // Getters and setters
 }

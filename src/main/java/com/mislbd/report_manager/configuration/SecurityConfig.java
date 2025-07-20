@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/admin/auth/**",         // public auth APIs
+                                "/admin/**", "/admin/auth/logout",         // public auth APIs
                                 "/v3/api-docs/**",      // Swagger JSON endpoint
                                 "/swagger-ui/**",       // Swagger UI static files
                                 "/swagger-ui.html"      // Swagger main page

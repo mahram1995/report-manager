@@ -1,4 +1,4 @@
-package com.mislbd.report_manager.controller.customer;
+package com.mislbd.report_manager.controller.admin;
 
 import com.mislbd.report_manager.criteria.CustomerSearchCriteria;
 import com.mislbd.report_manager.entity.CustomerEntity;
@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "http://localhost:4200")
 @RestController
-@RequestMapping("/admin/customer")
+@RequestMapping("admin/customer")
 public class CustomerController {
     private  final CustomerService customerService;
 

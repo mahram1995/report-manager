@@ -29,6 +29,7 @@ public class UserEntity {
     private Long departmentId;
     private Long groupId;
     private Long userBranchId;
+    private String isLogin;
 
     @Lob
     private byte[] userPhoto;

@@ -7,6 +7,7 @@ import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
 import com.mislbd.report_manager.domain.admin.UserResponseDomain;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.entity.admin.UserLoginInfoEntity;
+import com.mislbd.report_manager.exception.CommonRuntimeException;
 import com.mislbd.report_manager.repository.admin.SecuUserRepository;
 import com.mislbd.report_manager.repository.admin.UserLoginInfoRepository;
 import com.mislbd.report_manager.service.admin.AuthService;
@@ -21,6 +22,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -46,47 +49,65 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public ResponseEntity<UserResponseDomain> login(AuthRequestDomain request, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> login(AuthRequestDomain request)  {
         Optional<UserEntity> user = userRepo.findByUserName(request.getUserName());
+        String token;
 
         if (user.isEmpty()) {
-          //  return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User name is incorrect");
+        } else if (!securityConfig.passwordEncoder().matches(request.getPassword(), user.get().getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Password is incorrect");
+        } else if(user.get().getIsLogin()!=null && user.get().getIsLogin().contains("true")){
+            UserLoginInfoEntity loginInfo = (UserLoginInfoEntity) loginRepo.findTopByUserIdOrderByLoginTimeDesc(user.get().getId())
+                    .orElse(null);
+            if(!loginInfo.getLoginTerminal().equals(request.getLoginTerminal())){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User already login");
+            }else{
+                token = jwtUtil.generateToken(request.getUserName());
+               return ResponseEntity.ok( entityToDomain(user.get(),token));
+            }
+
         }
 
-        if (!securityConfig.passwordEncoder().matches(request.getPassword(), user.get().getPassword())) {
-          //  return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Password is incorrect");
-        }
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUserName(), request.getPassword()));
 
+        // update user as isLogin true
+        user.get().setIsLogin("true");
+        userRepo.save(user.get());
 
+
+        // save user loginInfo log
         UserLoginInfoEntity loginInfo = new UserLoginInfoEntity();
         loginInfo.setUserId(user.get().getId());
         loginInfo.setLoginTime(LocalDateTime.now());
-        loginInfo.setLoginTerminal(httpRequest.getRemoteHost());
-        loginInfo.setLoginDeviseName(httpRequest.getHeader("User-Agent"));
+        loginInfo.setLoginTerminal(request.getLoginTerminal());
+        loginInfo.setLoginDeviseName(request.getUserAgent());
         loginRepo.save(loginInfo);
 
-        String token = jwtUtil.generateToken(request.getUserName());
+         token = jwtUtil.generateToken(request.getUserName());
 
+        return ResponseEntity.ok( entityToDomain(user.get(),token));
+    }
+
+   public UserResponseDomain entityToDomain(UserEntity user, String token){
         UserResponseDomain domain=new UserResponseDomain();
-        domain.setEmail(user.get().getEmail());
-        domain.setUserName(user.get().getUserName());
-        domain.setDepartmentId(user.get().getDepartmentId());
-        domain.setLastName(user.get().getLastName());
-        domain.setFirstName(user.get().getFirstName());
-        domain.setLastName(user.get().getLastName());
-        domain.setMiddleName(user.get().getMiddleName());
-        domain.setGroupId(user.get().getGroupId());
+        domain.setEmail(user.getEmail());
+        domain.setUserName(user.getUserName());
+        domain.setDepartmentId(user.getDepartmentId());
+        domain.setLastName(user.getLastName());
+        domain.setFirstName(user.getFirstName());
+        domain.setLastName(user.getLastName());
+        domain.setMiddleName(user.getMiddleName());
+        domain.setGroupId(user.getGroupId());
         domain.setToken(token);
-        domain.setUserBranchId(user.get().getUserBranchId());
+        domain.setUserBranchId(user.getUserBranchId());
 
-
-        return ResponseEntity.ok(domain);
+        return  domain;
     }
 
     @Override
-    public ResponseEntity<String> logout(String username) {
+    public ResponseEntity<String> logout(String username, String logoutType) {
         Optional<UserEntity> user = userRepo.findByUserName(username);
 
         if (user.isPresent()) {
@@ -95,8 +116,13 @@ public class AuthServiceImpl implements AuthService {
 
             if (loginInfo != null && loginInfo.getLogoutTime() == null) {
                 loginInfo.setLogoutTime(LocalDateTime.now());
+                loginInfo.setLogoutType(logoutType);
                 loginRepo.save(loginInfo);
             }
+
+            // update user isLogin
+              user.get().setIsLogin("false");
+              userRepo.save(user.get());
 
             return ResponseEntity.ok("User logged out successfully.");
         } else {
