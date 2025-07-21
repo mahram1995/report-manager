@@ -7,11 +7,9 @@ import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
 import com.mislbd.report_manager.domain.admin.UserResponseDomain;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.entity.admin.UserLoginInfoEntity;
-import com.mislbd.report_manager.exception.CommonRuntimeException;
 import com.mislbd.report_manager.repository.admin.SecuUserRepository;
 import com.mislbd.report_manager.repository.admin.UserLoginInfoRepository;
 import com.mislbd.report_manager.service.admin.AuthService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,8 +20,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
