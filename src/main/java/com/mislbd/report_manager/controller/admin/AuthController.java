@@ -6,11 +6,13 @@ import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.service.admin.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/auth")
@@ -21,8 +23,14 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@ModelAttribute UserEntity request) throws IOException {
-        return authService.saveUser(request);
+    public ResponseEntity<?> register(@RequestBody UserEntity request) {
+        try {
+            String result = authService.saveUser(request);
+            return ResponseEntity.ok().body(Map.of("message", result));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/login")

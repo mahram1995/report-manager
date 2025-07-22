@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface SecuUserRepository extends JpaRepository<UserEntity, Long> {
     Optional<UserEntity> findByUserName(String userName);
+
+    boolean existsByUserName(String userName);
 }

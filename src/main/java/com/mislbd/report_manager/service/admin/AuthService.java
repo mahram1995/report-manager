@@ -12,7 +12,7 @@ import java.net.UnknownHostException;
 @Service
 public interface AuthService {
 
-    public ResponseEntity<?> saveUser(UserEntity user);
+    public String saveUser(UserEntity user);
     public ResponseEntity<?> login(AuthRequestDomain request) throws UnknownHostException;
     public ResponseEntity<String> logout( String username, String logoutType);
     public ResponseEntity<?> changePassword(ChangePasswordDomain req);

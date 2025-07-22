@@ -10,6 +10,7 @@ import com.mislbd.report_manager.entity.admin.UserLoginInfoEntity;
 import com.mislbd.report_manager.repository.admin.SecuUserRepository;
 import com.mislbd.report_manager.repository.admin.UserLoginInfoRepository;
 import com.mislbd.report_manager.service.admin.AuthService;
+import jakarta.persistence.Column;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,11 +38,16 @@ public class AuthServiceImpl implements AuthService {
     @Autowired private PasswordEncoder encoder;
 
     @Override
-    public ResponseEntity<?> saveUser(UserEntity data) {
-        data.setPassword(encoder.encode(data.getPassword()));
-        data.setUserPhoto(data.getUserPhoto() != null ? data.getUserPhoto() : null);
-        userRepo.save(data);
-        return ResponseEntity.ok("Registered");
+    public String saveUser(UserEntity data) {
+        if (userRepo.existsByUserName(data.getUserName())) {
+            throw new RuntimeException("Username already exists");
+        }
+
+           data.setPassword(encoder.encode(data.getPassword()));
+           data.setUserPhoto(data.getUserPhoto() != null ? data.getUserPhoto() : null);
+           userRepo.save(data);
+
+      return   "User created successfully";
     }
 
     @Override

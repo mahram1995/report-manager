@@ -13,12 +13,15 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
     private String userName;
     private String password;
     private String firstName;
     private String middleName;
     private String lastName;
+    @Column(unique = true)
     private String email;
+    @Column(unique = true)
     private String phone;
     private String employeeId;
     private String userStatus;
