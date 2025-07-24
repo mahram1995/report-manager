@@ -1,4 +1,4 @@
-package com.mislbd.report_manager.configuration.aopConfig;
+package com.mislbd.report_manager.configuration.aopConfig.aspect;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mislbd.report_manager.configuration.annotation.Command;

@@ -1,4 +1,4 @@
-package com.mislbd.report_manager.configuration.aopConfig;
+package com.mislbd.report_manager.configuration.aopConfig.aspect;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.JoinPoint;

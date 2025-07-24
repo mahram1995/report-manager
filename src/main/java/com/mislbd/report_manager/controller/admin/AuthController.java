@@ -25,7 +25,6 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
-    @ValidateAttribute(operation = "CREATE_NEW_USER")
     @Command("CREATE_NEW_USER")
     public ResponseEntity<?> register(@RequestBody UserEntity request) {
         try {
