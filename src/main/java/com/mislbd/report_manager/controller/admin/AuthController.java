@@ -1,6 +1,7 @@
 package com.mislbd.report_manager.controller.admin;
 
 import com.mislbd.report_manager.configuration.annotation.Command;
+import com.mislbd.report_manager.configuration.annotation.ValidateAttribute;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
 import com.mislbd.report_manager.entity.admin.UserEntity;
@@ -24,6 +25,7 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
+    @ValidateAttribute(operation = "CREATE_NEW_USER")
     @Command("CREATE_NEW_USER")
     public ResponseEntity<?> register(@RequestBody UserEntity request) {
         try {

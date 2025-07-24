@@ -2,6 +2,7 @@ package com.mislbd.report_manager.serviceImpl.admin;
 
 import com.mislbd.report_manager.configuration.JwtUtil;
 import com.mislbd.report_manager.configuration.SecurityConfig;
+import com.mislbd.report_manager.configuration.annotation.ValidateAttribute;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
 import com.mislbd.report_manager.domain.admin.UserResponseDomain;
@@ -39,9 +40,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String saveUser(UserEntity data) {
-        if (userRepo.existsByUserName(data.getUserName())) {
-            throw new RuntimeException("Username already exists");
-        }
 
            data.setPassword(encoder.encode(data.getPassword()));
            data.setUserPhoto(data.getUserPhoto() != null ? data.getUserPhoto() : null);
@@ -142,4 +140,5 @@ public class AuthServiceImpl implements AuthService {
         userRepo.save(user);
         return ResponseEntity.ok("Password updated");
     }
+
 }
