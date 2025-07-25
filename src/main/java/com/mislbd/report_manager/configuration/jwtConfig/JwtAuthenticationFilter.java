@@ -1,4 +1,4 @@
-package com.mislbd.report_manager.configuration;
+package com.mislbd.report_manager.configuration.jwtConfig;
 
 import com.mislbd.report_manager.service.admin.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;

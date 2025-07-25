@@ -1,8 +1,7 @@
 package com.mislbd.report_manager.serviceImpl.admin;
 
-import com.mislbd.report_manager.configuration.JwtUtil;
-import com.mislbd.report_manager.configuration.SecurityConfig;
-import com.mislbd.report_manager.configuration.annotation.ValidateAttribute;
+import com.mislbd.report_manager.configuration.jwtConfig.JwtUtil;
+import com.mislbd.report_manager.configuration.security.SecurityConfig;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
 import com.mislbd.report_manager.domain.admin.UserResponseDomain;
@@ -11,7 +10,6 @@ import com.mislbd.report_manager.entity.admin.UserLoginInfoEntity;
 import com.mislbd.report_manager.repository.admin.SecuUserRepository;
 import com.mislbd.report_manager.repository.admin.UserLoginInfoRepository;
 import com.mislbd.report_manager.service.admin.AuthService;
-import jakarta.persistence.Column;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

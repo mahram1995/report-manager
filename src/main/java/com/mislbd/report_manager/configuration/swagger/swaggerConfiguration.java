@@ -1,4 +1,4 @@
-package com.mislbd.report_manager.configuration;
+package com.mislbd.report_manager.configuration.swagger;
 
 
 import io.swagger.v3.oas.models.info.Info;

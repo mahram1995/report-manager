@@ -1,4 +1,4 @@
-package com.mislbd.report_manager.configuration;
+package com.mislbd.report_manager.configuration.jwtConfig;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

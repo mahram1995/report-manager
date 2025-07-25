@@ -1,4 +1,4 @@
-package com.mislbd.report_manager.configuration;
+package com.mislbd.report_manager.configuration.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

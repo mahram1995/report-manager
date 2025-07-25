@@ -1,5 +1,6 @@
-package com.mislbd.report_manager.configuration;
+package com.mislbd.report_manager.configuration.security;
 
+import com.mislbd.report_manager.configuration.jwtConfig.JwtAuthenticationFilter;
 import com.mislbd.report_manager.service.admin.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
