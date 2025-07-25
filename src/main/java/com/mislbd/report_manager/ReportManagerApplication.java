@@ -7,7 +7,7 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.web.bind.annotation.RestController;
 
-@SpringBootApplication
+@SpringBootApplication()
 @EnableAspectJAutoProxy
 public class ReportManagerApplication  extends SpringBootServletInitializer {
 	// in project structure > project> java-22

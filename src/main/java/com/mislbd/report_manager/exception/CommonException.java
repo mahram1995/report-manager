@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class CommonException {
 
     // map string value to JASON which is return throw RuntimeException in
     // anywhere in the application .
