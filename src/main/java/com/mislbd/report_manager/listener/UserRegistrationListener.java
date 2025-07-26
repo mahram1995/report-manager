@@ -5,15 +5,26 @@ import com.mislbd.report_manager.configuration.annotation.OnApprove;
 import com.mislbd.report_manager.configuration.annotation.OnCorrection;
 import com.mislbd.report_manager.configuration.annotation.OnRejection;
 import com.mislbd.report_manager.entity.admin.UserEntity;
+import com.mislbd.report_manager.service.admin.AuthService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 @Component
 @ApprovalFlowTaskListener(operation = "CREATE_NEW_USER")
 public class UserRegistrationListener {
+    private final AuthService authService;
+
+    public UserRegistrationListener(AuthService authService) {
+        this.authService = authService;
+    }
+
 
     @OnApprove
-    public void doOnApproveTransaction(UserEntity payload) {
-        System.out.println("✅ Approved user: " + payload.getUserName());
+    public ResponseEntity<?> doOnApproveTransaction(UserEntity payload) {
+        return authService.saveUser(payload);
+
     }
 
     @OnCorrection

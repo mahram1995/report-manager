@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -37,13 +38,13 @@ public class AuthServiceImpl implements AuthService {
     @Autowired private PasswordEncoder encoder;
 
     @Override
-    public String saveUser(UserEntity data) {
+    public ResponseEntity<?> saveUser(UserEntity data) {
 
            data.setPassword(encoder.encode(data.getPassword()));
            data.setUserPhoto(data.getUserPhoto() != null ? data.getUserPhoto() : null);
            userRepo.save(data);
 
-      return   "User created successfully";
+        return ResponseEntity.ok().body(Map.of("message", "User Create successfully"));
     }
 
     @Override

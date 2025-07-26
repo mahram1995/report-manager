@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TaskInstanceRepo extends JpaRepository<TaskInstanceEntity, Long> {
     TaskInstanceEntity findByTaskId(Long taskId);
+
+    void deleteByTaskId(Long taskId);
 }

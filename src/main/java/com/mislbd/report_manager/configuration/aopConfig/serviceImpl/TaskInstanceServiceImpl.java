@@ -33,4 +33,9 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
     public TaskInstanceEntity getTaskByTaskId(Long taskId) {
         return taskRepo.findByTaskId(taskId);
     }
+
+    @Override
+    public void deleteTaskByTaskId(Long taskId) {
+        taskRepo.deleteByTaskId(taskId);
+    }
 }

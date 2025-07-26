@@ -28,7 +28,7 @@ public class AuthController {
     @Command("CREATE_NEW_USER")
     public ResponseEntity<?> register(@RequestBody UserEntity request) {
         try {
-            String result = authService.saveUser(request);
+            ResponseEntity<?> result = authService.saveUser(request);
             return ResponseEntity.ok().body(Map.of("message", result));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
