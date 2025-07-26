@@ -16,4 +16,5 @@ public interface AuthService {
     public ResponseEntity<?> login(AuthRequestDomain request) throws UnknownHostException;
     public ResponseEntity<String> logout( String username, String logoutType);
     public ResponseEntity<?> changePassword(ChangePasswordDomain req);
+    public boolean existByUserName(String userName);
 }

@@ -140,4 +140,9 @@ public class AuthServiceImpl implements AuthService {
         return ResponseEntity.ok("Password updated");
     }
 
+    @Override
+    public boolean existByUserName(String userName) {
+       return userRepo.existsByUserName(userName);
+    }
+
 }
