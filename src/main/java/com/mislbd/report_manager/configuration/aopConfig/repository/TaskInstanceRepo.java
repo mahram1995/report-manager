@@ -4,4 +4,5 @@ import com.mislbd.report_manager.configuration.aopConfig.entity.TaskInstanceEnti
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TaskInstanceRepo extends JpaRepository<TaskInstanceEntity, Long> {
+    TaskInstanceEntity findByTaskId(Long taskId);
 }

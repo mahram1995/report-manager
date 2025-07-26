@@ -16,16 +16,21 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
     }
 
     @Override
-    public ResponseEntity<?> saveTaskInstance(TaskInstanceEntity entity) {
+    public Long saveTaskInstance(TaskInstanceEntity entity) {
         if(entity.getMaker()==null){
             throw new RuntimeException("Maker id can't be null");
         }
         taskRepo.save(entity);
-        return ResponseEntity.ok("Task sent to verifier,\n Task id is "+ entity.getTaskId());
+        return entity.getTaskId();
     }
 
     @Override
     public TaskInstanceEntity getTaskByUserName(String userName) {
         return null;
+    }
+
+    @Override
+    public TaskInstanceEntity getTaskByTaskId(Long taskId) {
+        return taskRepo.findByTaskId(taskId);
     }
 }
