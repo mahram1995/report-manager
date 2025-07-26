@@ -1,10 +1,10 @@
 package com.mislbd.report_manager.configuration.aopConfig.aspect;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mislbd.report_manager.configuration.annotation.Command;
 import com.mislbd.report_manager.configuration.aopConfig.entity.TaskInstanceEntity;
 import com.mislbd.report_manager.configuration.aopConfig.service.TaskInstanceService;
+import com.mislbd.report_manager.configuration.commonService.CommonService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -14,14 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.Reader;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Map;
 
 @Aspect
@@ -29,6 +24,7 @@ import java.util.Map;
 @Order(3)
 public class OperationVerifierAspect {
     private final TaskInstanceService taskService;
+    private final CommonService commonService;
     @Autowired
     private ApplicationContext context; //
     @Autowired
@@ -37,8 +33,9 @@ public class OperationVerifierAspect {
     @Autowired
     private HttpServletRequest httpServletRequest;
 
-    public OperationVerifierAspect(TaskInstanceService taskService) {
+    public OperationVerifierAspect(TaskInstanceService taskService, CommonService commonService) {
         this.taskService = taskService;
+        this.commonService = commonService;
     }
 
     @Pointcut("@annotation(command)")
@@ -50,7 +47,7 @@ public class OperationVerifierAspect {
     public Object verifyOperation(ProceedingJoinPoint joinPoint, Command command) throws Throwable {
         String operationName = command.value();
         Object[] args = joinPoint.getArgs();
-        String initiator = httpServletRequest.getHeader("username"); // or JWT
+        String initiator = SecurityContextHolder.getContext().getAuthentication().getName();; // or JWT
 
         boolean requiresApproval = checkIfApprovalRequired(operationName);
 
@@ -59,12 +56,12 @@ public class OperationVerifierAspect {
 
             String payload = objectMapper.writeValueAsString(args[0]);
 
-            savePendingApproval(operationName, initiator, payload);
+          Long taskId =  savePendingApproval(operationName, initiator, payload);
 
             // return fake success response (as if saved and will be verified)
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Request submitted for verification."
+                    "message", "Task sent for verification\n Task id is: " +taskId
             ));
         }
 
@@ -77,11 +74,11 @@ public class OperationVerifierAspect {
         return true;
     }
 
-    private void savePendingApproval(String operation, String user, String payload) {
+    private Long savePendingApproval(String operation, String user, String payload) {
         TaskInstanceEntity task=new TaskInstanceEntity();
         task.setMaker(user);
         task.setPayload(payload);
-        taskService.saveTaskInstance(task);
+        return  taskService.saveTaskInstance(task);
     }
 
 
