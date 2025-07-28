@@ -53,14 +53,15 @@ public class AuthServiceImpl implements AuthService {
         String token;
 
         if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User name is incorrect");
+            throw new RuntimeException("User name is incorrect");
+
         } else if (!securityConfig.passwordEncoder().matches(request.getPassword(), user.get().getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Password is incorrect");
+            throw new RuntimeException("Password is incorrect");
         } else if(user.get().getIsLogin()!=null && user.get().getIsLogin().contains("true")){
             UserLoginInfoEntity loginInfo = (UserLoginInfoEntity) loginRepo.findTopByUserIdOrderByLoginTimeDesc(user.get().getId())
                     .orElse(null);
             if(!loginInfo.getLoginTerminal().equals(request.getLoginTerminal())){
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User already login");
+                throw new RuntimeException("User already login");
             }else{
                 token = jwtUtil.generateToken(request.getUserName());
                return ResponseEntity.ok( entityToDomain(user.get(),token));
