@@ -5,6 +5,7 @@ import com.mislbd.report_manager.configuration.security.SecurityConfig;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
 import com.mislbd.report_manager.domain.admin.UserResponseDomain;
+import com.mislbd.report_manager.enam.UserStatus;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.entity.admin.UserLoginInfoEntity;
 import com.mislbd.report_manager.repository.admin.SecuUserRepository;
@@ -42,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
 
            data.setPassword(encoder.encode(data.getPassword()));
            data.setUserPhoto(data.getUserPhoto() != null ? data.getUserPhoto() : null);
+           data.setUserStatus(UserStatus.ACTIVE.name());
            userRepo.save(data);
 
         return ResponseEntity.ok().body(Map.of("message", "User Create successfully"));
@@ -52,6 +54,15 @@ public class AuthServiceImpl implements AuthService {
         Optional<UserEntity> user = userRepo.findByUserName(request.getUserName());
         String token;
 
+        if(user.get().getUserStatus().contains(UserStatus.BLOCKED.name())){
+            throw new RuntimeException("User is block. Please contact your administrator");
+        }
+        if(user.get().getUserStatus().contains(UserStatus.INACTIVE.name())){
+            throw new RuntimeException("User is inactive. Please contact your administrator for active the user");
+        }
+        if(user.get().getUserStatus().contains(UserStatus.DISABLED.name())){
+            throw new RuntimeException("User is disabled. you are not able to login in this system");
+        }
         if (user.isEmpty()) {
             throw new RuntimeException("User name is incorrect");
 
