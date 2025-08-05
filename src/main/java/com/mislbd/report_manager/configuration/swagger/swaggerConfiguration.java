@@ -38,4 +38,19 @@ public class swaggerConfiguration {
                 .build();
     }
 
+    @Bean
+    public GroupedOpenApi reportApi() {
+        return GroupedOpenApi.builder()
+                .group("Report API 1.0.01")
+                .packagesToScan("com.mislbd.report_manager.controller.report")
+                .addOpenApiCustomizer(openApi -> openApi.info(new Info()
+                        .title("Report API Documentation")
+                        .version("1.0.01")
+                        .description("Endpoints for Customer access")
+                        .license(new io.swagger.v3.oas.models.info.License()
+                                .name("© Millennium Information Solution Limited")
+                                .url("http://www.mislbd.com"))))
+                .build();
+    }
+
 }
