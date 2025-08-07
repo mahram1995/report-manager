@@ -16,6 +16,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Map;
 
@@ -47,6 +50,10 @@ public class OperationVerifierAspect {
     public Object verifyOperation(ProceedingJoinPoint joinPoint, Command command) throws Throwable {
         String operationName = command.value();
         Object[] args = joinPoint.getArgs();
+        HttpServletRequest request = getCurrentHttpRequest();
+        String detailsUI = request.getHeader("detailsUI");
+        String correctionUI = request.getHeader("correctionUI");
+        String verifier = request.getHeader("verifier");
         String initiator = SecurityContextHolder.getContext().getAuthentication().getName();; // or JWT
 
         boolean requiresApproval = checkIfApprovalRequired(operationName);
@@ -56,7 +63,7 @@ public class OperationVerifierAspect {
 
             String payload = objectMapper.writeValueAsString(args[0]);
 
-          Long taskId =  savePendingApproval(operationName, initiator, payload);
+          Long taskId =  savePendingApproval(operationName, initiator, payload, detailsUI, correctionUI,verifier);
 
             // return fake success response (as if saved and will be verified)
             return ResponseEntity.ok(Map.of(
@@ -69,15 +76,29 @@ public class OperationVerifierAspect {
         return joinPoint.proceed();
     }
 
+    private HttpServletRequest getCurrentHttpRequest() {
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes instanceof ServletRequestAttributes) {
+            return ((ServletRequestAttributes) requestAttributes).getRequest();
+        }
+        throw new IllegalStateException("Failed to get current HTTP request");
+    }
+
+
     private boolean checkIfApprovalRequired(String operationName) {
         // ✅ You can check from DB or hardcoded list
         return true;
     }
 
-    private Long savePendingApproval(String operation, String user, String payload) {
+    private Long savePendingApproval(String operation, String user, String payload,
+                                     String detailsUI, String correctionUI, String verifier) {
         TaskInstanceEntity task=new TaskInstanceEntity();
         task.setMaker(user);
+        task.setCommandName(operation);
         task.setPayload(payload);
+        task.setTaskDetailsUi(detailsUI);
+        task.setTaskCorrectionUi(correctionUI);
+        task.setVerifier(verifier);
         return  taskService.saveTaskInstance(task);
     }
 
