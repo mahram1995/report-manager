@@ -54,6 +54,11 @@ public class AuthServiceImpl implements AuthService {
         Optional<UserEntity> user = userRepo.findByUserName(request.getUserName());
         String token;
 
+        if (user.isEmpty()) {
+            throw new RuntimeException("User name is incorrect");
+        }else if (!securityConfig.passwordEncoder().matches(request.getPassword(), user.get().getPassword())) {
+            throw new RuntimeException("Password is incorrect");
+        }
         if(user.get().getUserStatus().contains(UserStatus.BLOCKED.name())){
             throw new RuntimeException("User is block. Please contact your administrator");
         }
@@ -63,15 +68,11 @@ public class AuthServiceImpl implements AuthService {
         if(user.get().getUserStatus().contains(UserStatus.DISABLED.name())){
             throw new RuntimeException("User is disabled. you are not able to login in this system");
         }
-        if (user.isEmpty()) {
-            throw new RuntimeException("User name is incorrect");
 
-        } else if (!securityConfig.passwordEncoder().matches(request.getPassword(), user.get().getPassword())) {
-            throw new RuntimeException("Password is incorrect");
-        } else if(user.get().getIsLogin()!=null && user.get().getIsLogin().contains("true")){
+        if(user.get().getIsLogin()!=null && user.get().getIsLogin().contains("true")){
             UserLoginInfoEntity loginInfo = (UserLoginInfoEntity) loginRepo.findTopByUserIdOrderByLoginTimeDesc(user.get().getId())
                     .orElse(null);
-            if(!loginInfo.getLoginTerminal().equals(request.getLoginTerminal())){
+            if( loginInfo!=null && !loginInfo.getLoginTerminal().equals(request.getLoginTerminal())){
                 throw new RuntimeException("User already login");
             }else{
                 token = jwtUtil.generateToken(request.getUserName());

@@ -21,13 +21,9 @@ import java.util.Map;
 public class ApprovalTaskProcessor implements ApplicationContextAware {
 
         private ApplicationContext applicationContext;
-        private final TaskInstanceService taskService;
+
         private final Map<String, Object> operationHandlerMap = new HashMap<>();
         private final ObjectMapper objectMapper = new ObjectMapper();  // Jackson for JSON → Object
-
-        public ApprovalTaskProcessor(TaskInstanceService taskService) {
-            this.taskService = taskService;
-        }
 
         @PostConstruct
         public void init() {
@@ -38,13 +34,11 @@ public class ApprovalTaskProcessor implements ApplicationContextAware {
             }
         }
 
-        public ResponseEntity<?> verifyOperation(String operation, Long taskId, String action) {
+        public ResponseEntity<?> verifyOperation(String operation, String payload, String action) {
             Object handler = operationHandlerMap.get(operation);
             if (handler == null) {
                 throw new IllegalArgumentException("No handler found for operation: " + operation);
             }
-
-            String payloadJson = taskService.getTaskByTaskId(taskId).getPayload();
 
             for (Method method : handler.getClass().getDeclaredMethods()) {
                 if (matchesAction(method, action)) {
@@ -55,7 +49,7 @@ public class ApprovalTaskProcessor implements ApplicationContextAware {
                             Class<?> paramType = method.getParameterTypes()[0];
 
                             // Convert JSON string to the method's parameter type
-                            Object deserializedPayload = objectMapper.readValue(payloadJson, paramType);
+                            Object deserializedPayload = objectMapper.readValue(payload, paramType);
 
                             Object result=  method.invoke(handler, deserializedPayload);
 
@@ -80,7 +74,7 @@ public class ApprovalTaskProcessor implements ApplicationContextAware {
             return switch (action.toUpperCase()) {
                 case "APPROVE" -> method.isAnnotationPresent(OnApprove.class);
                 case "CORRECTION" -> method.isAnnotationPresent(OnCorrection.class);
-                case " " -> method.isAnnotationPresent(OnRejection.class);
+                case "REJECTION" -> method.isAnnotationPresent(OnRejection.class);
                 default -> false;
             };
         }

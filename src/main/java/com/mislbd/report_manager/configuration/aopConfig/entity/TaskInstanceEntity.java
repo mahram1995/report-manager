@@ -6,7 +6,9 @@ import lombok.Data;
 import lombok.extern.java.Log;
 
 import java.sql.Clob;
-import java.sql.Date;
+import java.time.LocalDate;
+import java.util.Date;
+
 @Entity(name = "AF_TASK_INSTANCE")
 @Data
 public class TaskInstanceEntity {
@@ -29,8 +31,11 @@ public class TaskInstanceEntity {
     String  domainReference;
     String  maker;
     String  verifier;
+    LocalDate createDate;
     String  makerBranchId;
     String  status;
     String  verifierTerminal;
     String  makerTerminal;
+    @Transient
+    private Object payloadJson; // this column not create in db. Will hold parsed JSON
 }

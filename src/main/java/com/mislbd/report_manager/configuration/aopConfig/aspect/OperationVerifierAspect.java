@@ -20,14 +20,16 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Aspect
 @Component
 @Order(3)
 public class OperationVerifierAspect {
     private final TaskInstanceService taskService;
-    private final CommonService commonService;
     @Autowired
     private ApplicationContext context; //
     @Autowired
@@ -36,9 +38,8 @@ public class OperationVerifierAspect {
     @Autowired
     private HttpServletRequest httpServletRequest;
 
-    public OperationVerifierAspect(TaskInstanceService taskService, CommonService commonService) {
+    public OperationVerifierAspect(TaskInstanceService taskService) {
         this.taskService = taskService;
-        this.commonService = commonService;
     }
 
     @Pointcut("@annotation(command)")
@@ -94,12 +95,21 @@ public class OperationVerifierAspect {
                                      String detailsUI, String correctionUI, String verifier) {
         TaskInstanceEntity task=new TaskInstanceEntity();
         task.setMaker(user);
+        task.setActivityName(getActivityName(operation));
         task.setCommandName(operation);
         task.setPayload(payload);
+        task.setStatus("OPEN");
         task.setTaskDetailsUi(detailsUI);
         task.setTaskCorrectionUi(correctionUI);
         task.setVerifier(verifier);
+        task.setCreateDate(LocalDate.now());
         return  taskService.saveTaskInstance(task);
+    }
+
+    public String getActivityName(String command) {
+        return Arrays.stream(command.split("_"))
+                .map(word -> word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase())
+                .collect(Collectors.joining(" "));
     }
 
 

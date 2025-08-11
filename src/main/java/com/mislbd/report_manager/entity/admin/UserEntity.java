@@ -1,6 +1,7 @@
 package com.mislbd.report_manager.entity.admin;
 
 import com.mislbd.report_manager.configuration.aopConfig.entity.BaseEntity;
+import com.mislbd.report_manager.configuration.aopConfig.listener.AuditEntityListener;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,6 +10,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @Table(name = "RPT_SECU_USER")
+@EntityListeners(AuditEntityListener.class)
 public class UserEntity extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

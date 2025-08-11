@@ -33,7 +33,7 @@ public class UserRegistrationListener {
     }
 
     @OnRejection
-    public void doOnRejectTransaction(UserEntity payload) {
-        System.out.println("❌ Rejected user: " + payload.getUserName());
+    public ResponseEntity<?> doOnRejectTransaction(UserEntity payload) {
+        return ResponseEntity.ok().body(Map.of("message", "Task Rejected successfully"));
     }
 }
