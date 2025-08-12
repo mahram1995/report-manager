@@ -36,11 +36,12 @@ public class TaskInstanceController {
             @RequestParam( name = "taskId",required = false) Long taskId,
             @RequestParam(name = "verifier",required = false) String verifier,
             @RequestParam(name = "maker",required = false) String maker,
+            @RequestParam(name = "status",required = false) String status,
             @RequestParam(name = "page",defaultValue = "0") int page,
             @RequestParam(name = "size",defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        return taskService.getTask(taskId, verifier, maker, pageable);
+        return taskService.getTask(taskId, verifier, maker, status,pageable);
     }
 
     @GetMapping(  path = {"get-tasks-instance-payload/{taskId}"})

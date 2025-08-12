@@ -13,15 +13,17 @@ public interface TaskInstanceRepo extends JpaRepository<TaskInstanceEntity, Long
     TaskInstanceEntity findByTaskId(Long taskId);
 
     void deleteByTaskId(Long taskId);
-    @Query(value = "SELECT *\n" +
-            "  FROM AF_TASK_INSTANCE a\n" +
-            "  WHERE A.TASK_ID = NVL ( :taskId, A.TASK_ID)\n" +
-            "  AND A.MAKER=NVL(:maker,A.MAKER)\n" +
-            "  AND(( A.VERIFIER IS NULL\n" +
-            "  AND A.MAKER <> :verifier) or \n" +
-            "  (A.VERIFIER IS NOT NULL AND A.VERIFIER=:verifier)) order by task_id desc", nativeQuery = true)
+    @Query(value = "SELECT * FROM AF_TASK_INSTANCE a\n" +
+            " WHERE  A.TASK_ID = NVL ( :taskId, A.TASK_ID)\n" +
+            "       AND A.MAKER=NVL(:maker,A.MAKER)\n" +
+            "       AND(( A.VERIFIER IS NULL AND A.MAKER <> :verifier AND A.STATUS=:status) or \n" +
+            "       (A.VERIFIER IS NOT NULL AND A.VERIFIER=:verifier AND A.STATUS=:status) or\n" +
+            "       (A.STATUS=:status AND A.MAKER=:maker) )\n" +
+            "AND A.STATUS=NVL(:status, A.STATUS) \n" +
+            "       order by task_id desc", nativeQuery = true)
     Page<TaskInstanceEntity> getTasks(@Param("taskId") Long taskId,
                                       @Param("verifier") String verifier,
                                       @Param("maker") String maker,
+                                      @Param("status") String status,
                                       Pageable pageable);
 }

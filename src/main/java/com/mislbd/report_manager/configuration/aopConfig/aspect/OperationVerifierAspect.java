@@ -55,7 +55,12 @@ public class OperationVerifierAspect {
         String detailsUI = request.getHeader("detailsUI");
         String correctionUI = request.getHeader("correctionUI");
         String verifier = request.getHeader("verifier");
-        String initiator = SecurityContextHolder.getContext().getAuthentication().getName();; // or JWT
+        String oldTaskId = request.getHeader("taskId");
+        String initiator = SecurityContextHolder.getContext().getAuthentication().getName();
+        Long taskId = null;
+        if(oldTaskId!=null){
+            taskId=Long.valueOf(oldTaskId);
+        }
 
         boolean requiresApproval = checkIfApprovalRequired(operationName);
 
@@ -64,12 +69,18 @@ public class OperationVerifierAspect {
 
             String payload = objectMapper.writeValueAsString(args[0]);
 
-          Long taskId =  savePendingApproval(operationName, initiator, payload, detailsUI, correctionUI,verifier);
+           Long responseTaskId= savePendingApproval(operationName, initiator, payload, detailsUI, correctionUI,verifier, taskId);
 
             // return fake success response (as if saved and will be verified)
+            if(taskId!=null){
+                return ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "message", "Operation correction sent for\n  verification. Task id is: " +responseTaskId
+                ));
+            }
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Task sent for verification\n Task id is: " +taskId
+                    "message", "Task sent for verification\n Task id is: " +responseTaskId
             ));
         }
 
@@ -92,13 +103,18 @@ public class OperationVerifierAspect {
     }
 
     private Long savePendingApproval(String operation, String user, String payload,
-                                     String detailsUI, String correctionUI, String verifier) {
+                                     String detailsUI, String correctionUI,
+                                     String verifier, Long taskId) {
+
         TaskInstanceEntity task=new TaskInstanceEntity();
+        if(taskId!=null){
+            task.setTaskId(taskId);
+        }
         task.setMaker(user);
         task.setActivityName(getActivityName(operation));
         task.setCommandName(operation);
         task.setPayload(payload);
-        task.setStatus("OPEN");
+        task.setStatus("START");
         task.setTaskDetailsUi(detailsUI);
         task.setTaskCorrectionUi(correctionUI);
         task.setVerifier(verifier);

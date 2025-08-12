@@ -20,7 +20,8 @@ public interface TaskInstanceService {
     public void deleteTaskByTaskId (Long taskId);
     public ResponseEntity<?>  verifyOperation( Long taskId, String action,String delegateUser);
     public Page<TaskInstanceEntity> getTask(Long taskId, String verifier,
-                                            String maker, Pageable pageable);
+                                            String maker,String status, Pageable pageable
+                                             );
 
 
 }

@@ -106,7 +106,9 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
     }
 
     @Override
-    public Page<TaskInstanceEntity> getTask(Long taskId, String verifier, String maker, Pageable pageable) {
-        return this.taskRepo.getTasks(taskId, verifier, maker,  pageable);
+    public Page<TaskInstanceEntity> getTask(Long taskId, String verifier,
+                                            String maker, String status,Pageable pageable
+                                            ) {
+        return this.taskRepo.getTasks(taskId, verifier, maker, status, pageable);
     }
 }
