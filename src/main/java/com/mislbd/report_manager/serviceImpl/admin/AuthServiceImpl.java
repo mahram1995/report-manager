@@ -2,17 +2,25 @@ package com.mislbd.report_manager.serviceImpl.admin;
 
 import com.mislbd.report_manager.configuration.jwtConfig.JwtUtil;
 import com.mislbd.report_manager.configuration.security.SecurityConfig;
+import com.mislbd.report_manager.criteria.CustomerSearchCriteria;
+import com.mislbd.report_manager.criteria.UserSearchCriteria;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
 import com.mislbd.report_manager.domain.admin.UserResponseDomain;
 import com.mislbd.report_manager.enam.UserStatus;
+import com.mislbd.report_manager.entity.CustomerEntity;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.entity.admin.UserLoginInfoEntity;
 import com.mislbd.report_manager.repository.admin.SecuUserRepository;
 import com.mislbd.report_manager.repository.admin.UserLoginInfoRepository;
 import com.mislbd.report_manager.service.admin.AuthService;
+import com.mislbd.report_manager.specification.CustomerSpecification;
+import com.mislbd.report_manager.specification.UserSpecification;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -151,6 +159,12 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(encoder.encode(req.getNewPassword()));
         userRepo.save(user);
         return ResponseEntity.ok("Password updated");
+    }
+
+    @Override
+    public Page<UserEntity> getUsers(UserSearchCriteria criteria, Pageable pageable) {
+        Specification<UserEntity> spec = UserSpecification.getUserSpecification(criteria);
+        return userRepo.findAll(spec,pageable);
     }
 
     @Override
