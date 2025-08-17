@@ -12,8 +12,9 @@ import lombok.Setter;
 @Table(name = "RPT_SECU_USER")
 @EntityListeners(AuditEntityListener.class)
 public class UserEntity extends BaseEntity {
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq_generator")
+    @SequenceGenerator(name = "user_seq_generator", sequenceName = "ABABIL_USER_SEQ", allocationSize = 1)
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(unique = true)

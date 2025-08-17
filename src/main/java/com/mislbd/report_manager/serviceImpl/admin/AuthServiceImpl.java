@@ -1,20 +1,18 @@
 package com.mislbd.report_manager.serviceImpl.admin;
 
+import com.mislbd.report_manager.configuration.aopConfig.entity.ApiResponse;
 import com.mislbd.report_manager.configuration.jwtConfig.JwtUtil;
 import com.mislbd.report_manager.configuration.security.SecurityConfig;
-import com.mislbd.report_manager.criteria.CustomerSearchCriteria;
 import com.mislbd.report_manager.criteria.UserSearchCriteria;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
 import com.mislbd.report_manager.domain.admin.UserResponseDomain;
 import com.mislbd.report_manager.enam.UserStatus;
-import com.mislbd.report_manager.entity.CustomerEntity;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.entity.admin.UserLoginInfoEntity;
 import com.mislbd.report_manager.repository.admin.SecuUserRepository;
 import com.mislbd.report_manager.repository.admin.UserLoginInfoRepository;
 import com.mislbd.report_manager.service.admin.AuthService;
-import com.mislbd.report_manager.specification.CustomerSpecification;
 import com.mislbd.report_manager.specification.UserSpecification;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +28,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -41,50 +38,66 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private SecurityConfig securityConfig;
-    @Autowired private SecuUserRepository userRepo;
-    @Autowired private UserLoginInfoRepository loginRepo;
-    @Autowired private JwtUtil jwtUtil;
-    @Autowired private PasswordEncoder encoder;
+    @Autowired
+    private SecuUserRepository userRepo;
+    @Autowired
+    private UserLoginInfoRepository loginRepo;
+    @Autowired
+    private JwtUtil jwtUtil;
+    @Autowired
+    private PasswordEncoder encoder;
 
     @Override
     public ResponseEntity<?> saveUser(UserEntity data) {
 
-           data.setPassword(encoder.encode(data.getPassword()));
-           data.setUserPhoto(data.getUserPhoto() != null ? data.getUserPhoto() : null);
-           data.setUserStatus(UserStatus.ACTIVE.name());
-           userRepo.save(data);
+        data.setPassword(encoder.encode(data.getPassword()));
+        data.setUserPhoto(data.getUserPhoto() != null ? data.getUserPhoto() : null);
+        data.setUserStatus(UserStatus.ACTIVE.name());
+        userRepo.save(data);
 
-        return ResponseEntity.ok().body(Map.of("message", "User Create successfully"));
+        return ResponseEntity.ok(new ApiResponse<>("User create successfully", true, data));
     }
 
     @Override
-    public ResponseEntity<?> login(AuthRequestDomain request)  {
+    public ResponseEntity<?> updateUser(UserEntity data) {
+        UserEntity entity = userRepo.findById(data.getId()).get();
+
+        if (entity.getUserStatus() != data.getUserStatus()) {
+            userRepo.save(data);
+            return ResponseEntity.ok(new ApiResponse<>("User successfully " + data.getUserStatus(), true, data));
+        }
+        userRepo.save(data);
+        return ResponseEntity.ok(new ApiResponse<>("User update successfully", true, data));
+    }
+
+    @Override
+    public ResponseEntity<?> login(AuthRequestDomain request) {
         Optional<UserEntity> user = userRepo.findByUserName(request.getUserName());
         String token;
 
         if (user.isEmpty()) {
             throw new RuntimeException("User name is incorrect");
-        }else if (!securityConfig.passwordEncoder().matches(request.getPassword(), user.get().getPassword())) {
+        } else if (!securityConfig.passwordEncoder().matches(request.getPassword(), user.get().getPassword())) {
             throw new RuntimeException("Password is incorrect");
         }
-        if(user.get().getUserStatus().contains(UserStatus.BLOCKED.name())){
+        if (user.get().getUserStatus().contains(UserStatus.BLOCKED.name())) {
             throw new RuntimeException("User is block. Please contact your administrator");
         }
-        if(user.get().getUserStatus().contains(UserStatus.INACTIVE.name())){
+        if (user.get().getUserStatus().contains(UserStatus.INACTIVE.name())) {
             throw new RuntimeException("User is inactive. Please contact your administrator for active the user");
         }
-        if(user.get().getUserStatus().contains(UserStatus.DISABLED.name())){
+        if (user.get().getUserStatus().contains(UserStatus.DISABLED.name())) {
             throw new RuntimeException("User is disabled. you are not able to login in this system");
         }
 
-        if(user.get().getIsLogin()!=null && user.get().getIsLogin().contains("true")){
+        if (user.get().getIsLogin() != null && user.get().getIsLogin().contains("true")) {
             UserLoginInfoEntity loginInfo = (UserLoginInfoEntity) loginRepo.findTopByUserIdOrderByLoginTimeDesc(user.get().getId())
                     .orElse(null);
-            if( loginInfo!=null && !loginInfo.getLoginTerminal().equals(request.getLoginTerminal())){
+            if (loginInfo != null && !loginInfo.getLoginTerminal().equals(request.getLoginTerminal())) {
                 throw new RuntimeException("User already login");
-            }else{
+            } else {
                 token = jwtUtil.generateToken(request.getUserName());
-               return ResponseEntity.ok( entityToDomain(user.get(),token));
+                return ResponseEntity.ok(entityToDomain(user.get(), token));
             }
 
         }
@@ -105,13 +118,13 @@ public class AuthServiceImpl implements AuthService {
         loginInfo.setLoginDeviseName(request.getUserAgent());
         loginRepo.save(loginInfo);
 
-         token = jwtUtil.generateToken(request.getUserName());
+        token = jwtUtil.generateToken(request.getUserName());
 
-        return ResponseEntity.ok( entityToDomain(user.get(),token));
+        return ResponseEntity.ok(entityToDomain(user.get(), token));
     }
 
-   public UserResponseDomain entityToDomain(UserEntity user, String token){
-        UserResponseDomain domain=new UserResponseDomain();
+    public UserResponseDomain entityToDomain(UserEntity user, String token) {
+        UserResponseDomain domain = new UserResponseDomain();
         domain.setEmail(user.getEmail());
         domain.setUserName(user.getUserName());
         domain.setDepartmentId(user.getDepartmentId());
@@ -123,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
         domain.setToken(token);
         domain.setUserBranchId(user.getUserBranchId());
 
-        return  domain;
+        return domain;
     }
 
     @Override
@@ -141,8 +154,8 @@ public class AuthServiceImpl implements AuthService {
             }
 
             // update user isLogin
-              user.get().setIsLogin("false");
-              userRepo.save(user.get());
+            user.get().setIsLogin("false");
+            userRepo.save(user.get());
 
             return ResponseEntity.ok("User logged out successfully.");
         } else {
@@ -164,12 +177,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public Page<UserEntity> getUsers(UserSearchCriteria criteria, Pageable pageable) {
         Specification<UserEntity> spec = UserSpecification.getUserSpecification(criteria);
-        return userRepo.findAll(spec,pageable);
+        return userRepo.findAll(spec, pageable);
     }
 
     @Override
     public boolean existByUserName(String userName) {
-       return userRepo.existsByUserName(userName);
+        return userRepo.existsByUserName(userName);
     }
 
 }

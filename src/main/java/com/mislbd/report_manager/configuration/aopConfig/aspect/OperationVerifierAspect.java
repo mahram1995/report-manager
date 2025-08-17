@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mislbd.report_manager.configuration.annotation.Command;
 import com.mislbd.report_manager.configuration.aopConfig.entity.TaskInstanceEntity;
 import com.mislbd.report_manager.configuration.aopConfig.service.TaskInstanceService;
-import com.mislbd.report_manager.configuration.commonService.CommonService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -99,7 +98,7 @@ public class OperationVerifierAspect {
 
     private boolean checkIfApprovalRequired(String operationName) {
         // ✅ You can check from DB or hardcoded list
-        return true;
+        return false;
     }
 
     private Long savePendingApproval(String operation, String user, String payload,
