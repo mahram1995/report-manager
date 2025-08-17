@@ -28,6 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -62,7 +63,7 @@ public class AuthServiceImpl implements AuthService {
     public ResponseEntity<?> updateUser(UserEntity data) {
         UserEntity entity = userRepo.findById(data.getId()).get();
 
-        if (entity.getUserStatus() != data.getUserStatus()) {
+        if (!Objects.equals(entity.getUserStatus(), data.getUserStatus())) {
             userRepo.save(data);
             return ResponseEntity.ok(new ApiResponse<>("User successfully " + data.getUserStatus(), true, data));
         }
