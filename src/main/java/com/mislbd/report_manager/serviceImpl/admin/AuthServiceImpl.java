@@ -6,10 +6,12 @@ import com.mislbd.report_manager.configuration.security.SecurityConfig;
 import com.mislbd.report_manager.criteria.UserSearchCriteria;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
+import com.mislbd.report_manager.domain.admin.UserDomain;
 import com.mislbd.report_manager.domain.admin.UserResponseDomain;
 import com.mislbd.report_manager.enam.UserStatus;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.entity.admin.UserLoginInfoEntity;
+import com.mislbd.report_manager.mapper.admin.UserMapper;
 import com.mislbd.report_manager.repository.admin.SecuUserRepository;
 import com.mislbd.report_manager.repository.admin.UserLoginInfoRepository;
 import com.mislbd.report_manager.service.admin.AuthService;
@@ -26,6 +28,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -67,11 +70,12 @@ public class AuthServiceImpl implements AuthService {
             userRepo.save(data);
             return ResponseEntity.ok(new ApiResponse<>("User successfully " + data.getUserStatus(), true, data));
         }
-        if(!data.getPassword().isEmpty()){
+        if(StringUtils.hasText(data.getPassword())){
             entity.setPassword(encoder.encode(data.getPassword()));
             userRepo.save(entity);
             return ResponseEntity.ok(new ApiResponse<>("Password reset Successfully", true, null));
         }
+        data.setPassword(entity.getPassword());
         userRepo.save(data);
         return ResponseEntity.ok(new ApiResponse<>("User update successfully", true, data));
     }
@@ -181,9 +185,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Page<UserEntity> getUsers(UserSearchCriteria criteria, Pageable pageable) {
+    public Page<UserDomain> getUsers(UserSearchCriteria criteria, Pageable pageable) {
         Specification<UserEntity> spec = UserSpecification.getUserSpecification(criteria);
-        return userRepo.findAll(spec, pageable);
+
+        return userRepo.findAll(spec, pageable)
+                .map(UserMapper::entityToDomain); // convert each entity to domain
     }
 
     @Override

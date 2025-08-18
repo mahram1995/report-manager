@@ -3,6 +3,7 @@ import com.mislbd.report_manager.configuration.annotation.Command;
 import com.mislbd.report_manager.criteria.UserSearchCriteria;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
+import com.mislbd.report_manager.domain.admin.UserDomain;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.service.admin.AuthService;
 import org.springdoc.core.annotations.ParameterObject;
@@ -55,7 +56,7 @@ public class AuthController {
     }
 
     @GetMapping(path = {"get-users"})
-    public Page<UserEntity> getUsers(
+    public Page<UserDomain> getUsers(
             @ParameterObject Pageable pageable,
             @ParameterObject UserSearchCriteria criteria
     ) {

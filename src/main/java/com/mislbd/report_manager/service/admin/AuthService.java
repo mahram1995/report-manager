@@ -3,6 +3,7 @@ package com.mislbd.report_manager.service.admin;
 import com.mislbd.report_manager.criteria.UserSearchCriteria;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
+import com.mislbd.report_manager.domain.admin.UserDomain;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,6 @@ public interface AuthService {
     public ResponseEntity<?> login(AuthRequestDomain request) throws UnknownHostException;
     public ResponseEntity<String> logout( String username, String logoutType);
     public ResponseEntity<?> changePassword(ChangePasswordDomain req);
-    public Page<UserEntity> getUsers(UserSearchCriteria criteria, Pageable pageable);
+    public Page<UserDomain> getUsers(UserSearchCriteria criteria, Pageable pageable);
     public boolean existByUserName(String userName);
 }
