@@ -67,6 +67,11 @@ public class AuthServiceImpl implements AuthService {
             userRepo.save(data);
             return ResponseEntity.ok(new ApiResponse<>("User successfully " + data.getUserStatus(), true, data));
         }
+        if(!data.getPassword().isEmpty()){
+            entity.setPassword(encoder.encode(data.getPassword()));
+            userRepo.save(entity);
+            return ResponseEntity.ok(new ApiResponse<>("Password reset Successfully", true, null));
+        }
         userRepo.save(data);
         return ResponseEntity.ok(new ApiResponse<>("User update successfully", true, data));
     }
