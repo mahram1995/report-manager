@@ -1,8 +1,10 @@
 package com.mislbd.report_manager.configuration.aopConfig.aspect;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mislbd.report_manager.configuration.annotation.Command;
+import com.mislbd.report_manager.configuration.annotation.CommandAttribute;
+import com.mislbd.report_manager.configuration.aopConfig.entity.CommandEntity;
 import com.mislbd.report_manager.configuration.aopConfig.entity.TaskInstanceEntity;
+import com.mislbd.report_manager.configuration.aopConfig.service.CommandService;
 import com.mislbd.report_manager.configuration.aopConfig.service.TaskInstanceService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 @Order(3)
 public class OperationVerifierAspect {
     private final TaskInstanceService taskService;
+    private  final CommandService commandService;
     @Autowired
     private ApplicationContext context; //
     @Autowired
@@ -37,18 +40,19 @@ public class OperationVerifierAspect {
     @Autowired
     private HttpServletRequest httpServletRequest;
 
-    public OperationVerifierAspect(TaskInstanceService taskService) {
+    public OperationVerifierAspect(TaskInstanceService taskService, CommandService commandService) {
         this.taskService = taskService;
+        this.commandService = commandService;
     }
 
-    @Pointcut("@annotation(command)")
-    public void verifyPointcut(Command command) {
+    @Pointcut("@annotation(commandAttribute)")
+    public void verifyPointcut(CommandAttribute commandAttribute) {
 
     }
 
-    @Around("verifyPointcut(command)")
-    public Object verifyOperation(ProceedingJoinPoint joinPoint, Command command) throws Throwable {
-        String operationName = command.value();
+    @Around("verifyPointcut(commandAttribute)")
+    public Object verifyOperation(ProceedingJoinPoint joinPoint, CommandAttribute commandAttribute) throws Throwable {
+        String operationName = commandAttribute.value();
         Object[] args = joinPoint.getArgs();
         HttpServletRequest request = getCurrentHttpRequest();
         String detailsUI = request.getHeader("detailsUI");
@@ -97,8 +101,9 @@ public class OperationVerifierAspect {
 
 
     private boolean checkIfApprovalRequired(String operationName) {
-        // ✅ You can check from DB or hardcoded list
-        return false;
+        CommandEntity command=commandService.getCommandByCommandName(operationName);
+
+        return command.getIsApprovalFlowRequired();
     }
 
     private Long savePendingApproval(String operation, String user, String payload,

@@ -1,5 +1,5 @@
 package com.mislbd.report_manager.controller.admin;
-import com.mislbd.report_manager.configuration.annotation.Command;
+import com.mislbd.report_manager.configuration.annotation.CommandAttribute;
 import com.mislbd.report_manager.criteria.UserSearchCriteria;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
@@ -24,13 +24,13 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
-    @Command("CREATE_NEW_USER")
+    @CommandAttribute("CREATE_NEW_USER")
     public ResponseEntity<?> register(@RequestBody UserEntity request) {
         return authService.saveUser(request);
     }
 
     @PutMapping("/update-user")
-    @Command("MODIFICATION_USER")
+    @CommandAttribute("MODIFICATION_USER")
     public ResponseEntity<?> updateUser(@RequestBody UserEntity request) {
         return  authService.updateUser(request);
     }

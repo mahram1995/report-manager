@@ -1,6 +1,6 @@
 package com.mislbd.report_manager.configuration.aopConfig.aspect;
 
-import com.mislbd.report_manager.configuration.annotation.Command;
+import com.mislbd.report_manager.configuration.annotation.CommandAttribute;
 import com.mislbd.report_manager.configuration.annotation.ValidateOperation;
 import com.mislbd.report_manager.configuration.aopConfig.domain.OperationValidator;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -24,12 +24,12 @@ public class OperationValidationAspect {
         this.context = context;
     }
 
-    @Pointcut("@annotation(com.mislbd.report_manager.configuration.annotation.Command)")
+    @Pointcut("@annotation(com.mislbd.report_manager.configuration.annotation.CommandAttribute)")
     public void commandPointcut() {}
 
-    @Around("commandPointcut() && @annotation(command)")
-    public Object validateOperationAndProceed(ProceedingJoinPoint joinPoint, Command command) throws Throwable {
-        String operation = command.value();
+    @Around("commandPointcut() && @annotation(commandAttribute)")
+    public Object validateOperationAndProceed(ProceedingJoinPoint joinPoint, CommandAttribute commandAttribute) throws Throwable {
+        String operation = commandAttribute.value();
         Object dto = joinPoint.getArgs()[0]; // assuming DTO is the first parameter
 
         boolean validated = invokeValidator(operation, dto);
