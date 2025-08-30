@@ -102,8 +102,11 @@ public class OperationVerifierAspect {
 
     private boolean checkIfApprovalRequired(String operationName) {
         CommandEntity command=commandService.getCommandByCommandName(operationName);
+        if (command != null && Boolean.TRUE.equals(command.getIsApprovalFlowRequired())) {
+            return command.getIsApprovalFlowRequired();
+        }
 
-        return command.getIsApprovalFlowRequired();
+        return true;
     }
 
     private Long savePendingApproval(String operation, String user, String payload,
