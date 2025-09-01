@@ -27,36 +27,52 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
     @Autowired
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final CustomUserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    /**
+     * Chain 1: secure only /admin/auth/** endpoints
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securedApiChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults()) // ✅ Enable CORS using a CorsConfigurationSource bean
+                .securityMatcher("/admin/auth/**") // ✅ apply only to this path
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/admin/**", "/reports/**",             // public auth APIs
+                                "/admin/auth/login",
+                                "/admin/auth/register",
                                 "/v3/api-docs/**",       // Swagger JSON
                                 "/swagger-ui/**",        // Swagger UI static
                                 "/swagger-ui.html"       // Swagger HTML
                         ).permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ✅ Allow preflight
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // preflight
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(jwtAuthenticationEntryPoint) // <-- use custom entry point
-                );;
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint));
 
         return http.build();
     }
 
+    /**
+     * Chain 2: everything else is permitted → missing endpoints return 404 instead of 401
+     */
+    @Bean
+    SecurityFilterChain everythingElseChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/**")
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+
+        return http.build();
+    }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
