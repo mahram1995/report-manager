@@ -18,18 +18,34 @@ public class UdfUdfsEntity {
     private Long id;
 
     private String name;
+    private String label;
     private String styleClass;
-    private Integer maximumLength;
-    private Integer minimumLength;
+    private String maximumLength;
+    private String minimumLength;
     private String regularExpression;
     private String dataType;
     private Boolean singleData;
     private Boolean multipleSelection;
     private Boolean mandatory;
     private Integer orderNo;
-    private String label;
-    private Boolean conditionallyAppearance;
+    private Boolean isServiceEndpoint;
+    private String serviceEndpointName;
+    private String labelOfServiceEndpoint;
+    private String valueOfServiceEndpoint;
+    private Boolean isConditionallyAppearance;
     private String fieldGroup;
+    // ✅ Foreign key column in UDF_UDFS
+    @Column(name = "udfProfileId")
+    private Long udfProfileId;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "userDefinedFieldId", referencedColumnName = "id")
+    private List<UdfFieldAppearanceLogicEntity> fieldAppearanceLogics;
+
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "userDefinedFieldId", referencedColumnName = "id")
+    private List<UdfDomainDataEntity> userDefinedFieldDomainDataList;
+
+
 
 
 

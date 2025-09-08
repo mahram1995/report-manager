@@ -12,7 +12,7 @@ import java.util.Date;
 @Component
 public class JwtUtil {
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256); // secure key
-    private final long EXPIRATION_TIME = 20 * 60 * 1000; // 20 minutes
+    private final long EXPIRATION_TIME = 200 * 60 * 1000; // 20 minutes
 
     public String generateToken(String username) {
         return Jwts.builder()

@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface UdfProfileService {
     ResponseEntity<?> save(UdfProfileEntity profile);
-    UdfProfileEntity update(UdfProfileEntity profile);
+    ResponseEntity<?>  update(UdfProfileEntity profile);
     UdfProfileEntity updateById(Long id, UdfProfileEntity profile);
     void deleteById(Long id);
     Page<UdfProfileEntity> getAll(String name, String module, Pageable pageable);

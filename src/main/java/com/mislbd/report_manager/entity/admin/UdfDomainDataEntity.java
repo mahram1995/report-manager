@@ -18,5 +18,7 @@ public class UdfDomainDataEntity {
     private String label;
     private Integer orderNo;
     private String dependentData;
+    @Column(name = "userDefinedFieldId", insertable = false, updatable = false)
+    private Long userDefinedFieldId;
 
 }

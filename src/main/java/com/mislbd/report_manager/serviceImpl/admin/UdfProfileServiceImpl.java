@@ -32,12 +32,14 @@ public class UdfProfileServiceImpl implements UdfProfileService {
         }
 
         repository.save(profile);
-        return ResponseEntity.ok(new ApiResponse<>("UDF create successfully", true,null));
+        return ResponseEntity.ok(new ApiResponse<>("UDF profile successfully", true,null));
     }
 
     @Override
-    public UdfProfileEntity update(UdfProfileEntity profile) {
-        return repository.save(profile);
+    public ResponseEntity<?>  update(UdfProfileEntity profile) {
+         repository.save(profile);
+        return ResponseEntity.ok(new ApiResponse<>("UDF save successfully", true,null));
+
     }
 
     @Override

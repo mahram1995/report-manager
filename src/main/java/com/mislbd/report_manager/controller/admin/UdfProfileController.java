@@ -28,7 +28,7 @@ public class UdfProfileController {
     }
 
     @PutMapping("update-udf")
-    public UdfProfileEntity updateUdf(@RequestBody UdfProfileEntity profile) {
+    public ResponseEntity<?>  updateUdf(@RequestBody UdfProfileEntity profile) {
         return service.update(profile);
     }
 

@@ -14,11 +14,12 @@ public class UdfFieldAppearanceLogicEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "udf_field_logic_seq")
     @SequenceGenerator(name = "udf_field_logic_seq", sequenceName = "SEQ_UDF_FIELD_LOGIC", allocationSize = 1)
     private Long id;
-
     private Long dependentFieldId;
     private String logicType;
     private String value;
     private String paramKeyword;
+    @Column(name = "userDefinedFieldId", insertable = false, updatable = false)
+    private Long userDefinedFieldId;
 
 
 }
