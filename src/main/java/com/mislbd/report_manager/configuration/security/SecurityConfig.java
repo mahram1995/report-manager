@@ -21,6 +21,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -39,18 +44,18 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securedApiChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/admin/auth/**") // ✅ apply only to this path
+                .securityMatcher("/admin/auth/**")
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/admin/auth/login",
                                 "/admin/auth/register",
-                                "/v3/api-docs/**",       // Swagger JSON
-                                "/swagger-ui/**",        // Swagger UI static
-                                "/swagger-ui.html"       // Swagger HTML
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // preflight
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -60,6 +65,8 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+
 
     /**
      * Chain 2: everything else is permitted → missing endpoints return 404 instead of 401
