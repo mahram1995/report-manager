@@ -21,3 +21,9 @@ server:
   port: 5050
 
 spring.mvc.pathmatch.matching-strategy: ant_path_matcher
+# Collapse all endpoints by default
+springdoc:
+  swagger-ui:
+    doc-expansion: none
+    tags-sorter: alpha # Sort controllers alphabetically
+    operations-sorter: alpha # Sort operations inside controllers alphabetically

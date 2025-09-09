@@ -2,22 +2,24 @@ package com.mislbd.report_manager.serviceImpl.admin;
 
 import com.mislbd.report_manager.configuration.aopConfig.entity.ApiResponse;
 import com.mislbd.report_manager.entity.admin.UdfProfileEntity;
+import com.mislbd.report_manager.entity.admin.UdfUdfsEntity;
 import com.mislbd.report_manager.repository.admin.UdfProfileRepository;
+import com.mislbd.report_manager.repository.admin.UdfUdfsRepository;
 import com.mislbd.report_manager.service.admin.UdfProfileService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
 public class UdfProfileServiceImpl implements UdfProfileService {
 
     private final UdfProfileRepository repository;
+    private final UdfUdfsRepository udfUdfsRepository;
 
-    public UdfProfileServiceImpl(UdfProfileRepository repository) {
+    public UdfProfileServiceImpl(UdfProfileRepository repository, UdfUdfsRepository udfUdfsRepository) {
         this.repository = repository;
+        this.udfUdfsRepository = udfUdfsRepository;
     }
 
     @Override
@@ -33,6 +35,19 @@ public class UdfProfileServiceImpl implements UdfProfileService {
 
         repository.save(profile);
         return ResponseEntity.ok(new ApiResponse<>("UDF profile successfully", true,null));
+    }
+
+    @Override
+    public ResponseEntity<?> saveUserDefinedFiled(UdfUdfsEntity udf) {
+        udfUdfsRepository.save(udf);
+        return ResponseEntity.ok(new ApiResponse<>("UDF save successfully", true,null));
+    }
+
+    @Override
+    public ResponseEntity<?> updateUserDefinedFiled(UdfUdfsEntity udf) {
+        udfUdfsRepository.save(udf);
+        return ResponseEntity.ok(new ApiResponse<>("UDF update successfully", true,null));
+
     }
 
     @Override

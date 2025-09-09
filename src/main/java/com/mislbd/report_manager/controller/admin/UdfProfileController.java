@@ -2,6 +2,7 @@ package com.mislbd.report_manager.controller.admin;
 
 import com.mislbd.report_manager.configuration.aopConfig.entity.CommandEntity;
 import com.mislbd.report_manager.entity.admin.UdfProfileEntity;
+import com.mislbd.report_manager.entity.admin.UdfUdfsEntity;
 import com.mislbd.report_manager.service.admin.UdfProfileService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,13 +22,21 @@ public class UdfProfileController {
         this.service = service;
     }
 
-    @PostMapping("save-udf")
-    public ResponseEntity<?> saveUdf(@RequestBody UdfProfileEntity profile) {
+    @PostMapping("save-udf-profile")
+    public ResponseEntity<?> saveUdfProfile(@RequestBody UdfProfileEntity profile) {
 
         return service.save(profile);
     }
+    @PostMapping("save-user-defiled-field")
+    public ResponseEntity<?> saveUserDefiledFiled(@RequestBody UdfUdfsEntity udf) {
+        return service.saveUserDefinedFiled(udf);
+    }
+    @PutMapping("update-user-defiled-field")
+    public ResponseEntity<?>  updateUserDefiledFiled(@RequestBody UdfUdfsEntity udf) {
+        return service.updateUserDefinedFiled(udf);
+    }
 
-    @PutMapping("update-udf")
+    @PutMapping("update-udf-profile")
     public ResponseEntity<?>  updateUdf(@RequestBody UdfProfileEntity profile) {
         return service.update(profile);
     }
