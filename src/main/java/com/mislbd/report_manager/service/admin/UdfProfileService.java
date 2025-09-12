@@ -15,7 +15,7 @@ public interface UdfProfileService {
 
     ResponseEntity<?>  update(UdfProfileEntity profile);
     UdfProfileEntity updateById(Long id, UdfProfileEntity profile);
-    void deleteById(Long id);
+    ResponseEntity<?>  deleteUserDefinedFiledById(Long id);
     Page<UdfProfileEntity> getAll(String name, String module, Pageable pageable);
     UdfProfileEntity getById(Long id);
 

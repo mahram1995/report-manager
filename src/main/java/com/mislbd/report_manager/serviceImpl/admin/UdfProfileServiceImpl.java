@@ -66,8 +66,10 @@ public class UdfProfileServiceImpl implements UdfProfileService {
     }
 
     @Override
-    public void deleteById(Long id) {
-        repository.deleteById(id);
+    public ResponseEntity<?> deleteUserDefinedFiledById(Long id) {
+        udfUdfsRepository.deleteById(id);
+        return ResponseEntity.ok(new ApiResponse<>("UDF delete successfully", true,null));
+
     }
 
     @Override

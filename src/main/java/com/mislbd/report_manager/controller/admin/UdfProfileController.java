@@ -27,11 +27,11 @@ public class UdfProfileController {
 
         return service.save(profile);
     }
-    @PostMapping("save-user-defiled-field")
+    @PostMapping("save-user-defined-field")
     public ResponseEntity<?> saveUserDefiledFiled(@RequestBody UdfUdfsEntity udf) {
         return service.saveUserDefinedFiled(udf);
     }
-    @PutMapping("update-user-defiled-field")
+    @PutMapping("update-user-defined-field")
     public ResponseEntity<?>  updateUserDefiledFiled(@RequestBody UdfUdfsEntity udf) {
         return service.updateUserDefinedFiled(udf);
     }
@@ -46,9 +46,9 @@ public class UdfProfileController {
         return service.updateById(id, profile);
     }
 
-    @DeleteMapping("deleteById/{id}")
-    public void deleteById(@PathVariable Long id) {
-        service.deleteById(id);
+    @DeleteMapping("delete-user-defined-filed-byId/{id}")
+    public void deleteUserDefinedFiledById(@PathVariable("id") Long id) {
+        service.deleteUserDefinedFiledById(id);
     }
 
     // Get all udf

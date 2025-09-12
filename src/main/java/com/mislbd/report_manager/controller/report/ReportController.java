@@ -17,9 +17,10 @@ public class ReportController {
 
     @GetMapping("/get-report")
     public void getReport(HttpServletResponse response,
-                          @RequestParam("reportName") String reportName,
-                          @RequestParam("parameter") String parameter,
-                          @RequestParam("reportType") String reportType) {
+                          @RequestParam(name = "reportName", required = false) String reportName,
+                          @RequestParam(name = "parameter", required = false) String parameter,
+                          @RequestParam(name = "reportType", required = false) String reportType
+) {
 
         try {
             String jasperUrl = "http://localhost:8080/jasperserver/rest_v2/reports/reports/report/";
