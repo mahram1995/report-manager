@@ -20,6 +20,8 @@ public class UdfProfileEntity {
     private Long id;
     private String code;
     private String name;
+    private String reportFileName;
+    private String moduleName;
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "udfProfileId", referencedColumnName = "id")
     private List<UdfUdfsEntity> userDefinedFields;
