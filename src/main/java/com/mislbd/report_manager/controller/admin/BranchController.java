@@ -20,10 +20,15 @@ public class BranchController {
     }
 
     @GetMapping(path = "get-branch")
-    private Page<BranchEntity> getBranches(
-          @ParameterObject Pageable pageable
+    private Object getBranches(
+          @ParameterObject Pageable pageable,
+              @RequestParam(name = "asPage", defaultValue = "true") boolean asPage
     ) {
-        return  branchService.getBranches(pageable);
+         if(asPage){
+             return branchService.getBranches(pageable);
+         }else{
+             return branchService.getAllBranch();
+         }
     }
 
 }

@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class BranchService {
     private final BranchRepo branchRepo;
@@ -17,5 +19,9 @@ public class BranchService {
     public Page<BranchEntity> getBranches(Pageable pageable) {
 
        return   branchRepo.findAll( pageable);
+    }
+    public List<BranchEntity> getAllBranch(){
+
+      return   branchRepo.findAll();
     }
 }
