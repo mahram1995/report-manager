@@ -6,6 +6,7 @@ import com.mislbd.report_manager.service.CustomerService;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "http://localhost:4200")
@@ -26,10 +27,16 @@ public class CustomerController {
     }
 
     @GetMapping(path = {"searchCustomer"})
-    public Page<CustomerEntity> searchCustomers(
+    public ResponseEntity<?> searchCustomers(
             @ParameterObject  Pageable pageable,
-            @ParameterObject  CustomerSearchCriteria criteria
+            @ParameterObject  CustomerSearchCriteria criteria,
+            @RequestParam(name = "asPage", defaultValue = "true") boolean asPage
     ) {
-        return customerService.searchCustomer(criteria,pageable);
+        if(asPage){
+            return ResponseEntity.ok(customerService.searchCustomer(criteria,pageable)) ;
+        }else{
+            return ResponseEntity.ok(customerService.searchCustomer(criteria));
+        }
+
     }
 }

@@ -22,7 +22,7 @@ public class BranchController {
     @GetMapping(path = "get-branch")
     private Object getBranches(
           @ParameterObject Pageable pageable,
-              @RequestParam(name = "asPage", defaultValue = "true") boolean asPage
+          @RequestParam(name = "asPage", defaultValue = "true") boolean asPage
     ) {
          if(asPage){
              return branchService.getBranches(pageable);

@@ -30,4 +30,10 @@ public class CustomerService {
         Specification<CustomerEntity> spec = CustomerSpecification.getCustomerSpecification(criteria);
         return customerRepo.findAll(spec,pageable);
     }
+
+    public List<CustomerEntity> searchCustomer(CustomerSearchCriteria criteria) {
+
+        Specification<CustomerEntity> spec = CustomerSpecification.getCustomerSpecification(criteria);
+        return customerRepo.findAll(spec);
+    }
 }
