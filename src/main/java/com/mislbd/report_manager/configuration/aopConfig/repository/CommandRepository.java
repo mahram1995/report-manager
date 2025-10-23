@@ -16,4 +16,6 @@ public interface CommandRepository extends JpaRepository<CommandEntity, Long> {
 
     @Query(value = "SELECT * FROM CMD_COMMAND C WHERE C.COMMAND_NAME= NVL( :name,COMMAND_NAME)", nativeQuery = true)
     Page<CommandEntity> getCommandsByName(@Param("name") String commandName, Pageable pageable);
+
+    boolean existsByCommandName(String commandName);
 }

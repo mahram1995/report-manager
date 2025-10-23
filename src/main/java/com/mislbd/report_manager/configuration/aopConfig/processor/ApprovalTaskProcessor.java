@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.mislbd.report_manager.configuration.aopConfig.domain.CommandResponse;
+import com.mislbd.report_manager.configuration.aopConfig.entity.CommandEntity;
+import com.mislbd.report_manager.configuration.aopConfig.repository.CommandRepository;
 import com.mislbd.report_manager.exception.CommandValidationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -22,23 +24,26 @@ public class ApprovalTaskProcessor {
     private final CommandHandlerAnnotationProcessor commandHandlerAnnotationProcessor;
     private final CommandListenerProcessor commandListenerProcessor;
     private final CommandValidatorAnnotationProcessor commandValidator;
+    private final CommandRepository commandRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();  // Jackson for JSON → Object
 
-    public ApprovalTaskProcessor(CommandHandlerAnnotationProcessor commandHandlerAnnotationProcessor, CommandListenerProcessor commandListenerProcessor, CommandValidatorAnnotationProcessor commandValidator) {
+    public ApprovalTaskProcessor(CommandHandlerAnnotationProcessor commandHandlerAnnotationProcessor, CommandListenerProcessor commandListenerProcessor, CommandValidatorAnnotationProcessor commandValidator, CommandRepository commandRepository) {
         this.commandHandlerAnnotationProcessor = commandHandlerAnnotationProcessor;
         this.commandListenerProcessor = commandListenerProcessor;
         this.commandValidator = commandValidator;
+        this.commandRepository = commandRepository;
     }
 
 
 
     public ResponseEntity<?> verifyOperation(String commandName, String payload, String action) {
+        CommandEntity command=commandRepository.findByCommandName(commandName);
         CommandResponse<?> response = null;
             if(action.equals("APPROVE")){
                  response = executeApproveCommand(
-                        "CreateNewUserCommand",
-                        "UserEntity",
+                        command.getCommandPackageName(),
+                        command.getEntityPackageName(),
                         payload,
                          r -> {
                              // publish command listener on APPROVE
@@ -48,19 +53,25 @@ public class ApprovalTaskProcessor {
             }else{
                 // publish command listener on REJECTION and CORRECTION
                 commandListenerProcessor.publishCommandListener(commandName,payload,action);
+                return ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "message", "Task Reject successfully: "
+                ));
             }
-            return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Task approve successfully: " +response.getContent()
+        ));
 
     }
 
 
 
-    public  CommandResponse<?>  executeApproveCommand(String commandClassName, String entityClassName, Object payload, Consumer<CommandResponse<?>> callback) {
-        String basePackage = "com.mislbd.report_manager";
+    public  CommandResponse<?>  executeApproveCommand(String commandPackage, String entityPackage, Object payload, Consumer<CommandResponse<?>> callback) {
 
         try {
             // 1️⃣ Load entity class dynamically
-            Class<?> entityClass = Class.forName(basePackage + ".entity.admin." + entityClassName);
+            Class<?> entityClass = Class.forName(entityPackage);
 
             Object payloadObject;
 
@@ -74,7 +85,7 @@ public class ApprovalTaskProcessor {
             Object entity = objectMapper.convertValue(payloadObject, entityClass);
 
             // 3️⃣ Load command class dynamically
-            Class<?> commandClass = Class.forName(basePackage + ".command." + commandClassName);
+            Class<?> commandClass = Class.forName(commandPackage);
 
             // 4️⃣ Find constructor with entity parameter
             Constructor<?> constructor = commandClass.getConstructor(entityClass);

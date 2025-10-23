@@ -16,13 +16,12 @@ public class CommandEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String commandCode;
     private String commandName;
+    private String description;
     private String moduleName;
-    private String activityName;
-    private String className;
-    private String packageName;
+    private String entityPackageName;
+    private String commandPackageName;
     private Boolean isVisibleInUI;
     private Boolean isApprovalFlowRequired;
     private String approvalFlowLayer;

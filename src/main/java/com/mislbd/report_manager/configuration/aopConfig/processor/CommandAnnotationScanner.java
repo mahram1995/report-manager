@@ -1,22 +1,26 @@
 package com.mislbd.report_manager.configuration.aopConfig.processor;
 
 import com.mislbd.report_manager.configuration.annotation.CommandAttributeTest;
+import com.mislbd.report_manager.configuration.aopConfig.entity.CommandEntity;
 import com.mislbd.report_manager.configuration.aopConfig.entity.CommandMetadataEntity;
 import com.mislbd.report_manager.configuration.aopConfig.repository.CommandMetadataRepository;
-import org.aspectj.util.Reflection;
+import com.mislbd.report_manager.configuration.aopConfig.repository.CommandRepository;
 import org.reflections.Reflections;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Set;
 
 @Component
 public class CommandAnnotationScanner {
 
-    private final CommandMetadataRepository repository;
 
-    public CommandAnnotationScanner(CommandMetadataRepository repository) {
-        this.repository = repository;
+    private final CommandRepository commandRepository ;
+
+    public CommandAnnotationScanner( CommandRepository commandRepository) {
+        this.commandRepository = commandRepository;
     }
 
     @Transactional
@@ -29,20 +33,37 @@ public class CommandAnnotationScanner {
 
         for (Class<?> clazz : annotatedClasses) {
             CommandAttributeTest annotation = clazz.getAnnotation(CommandAttributeTest.class);
-            String packageName = clazz.getPackageName();
-            String className = clazz.getSimpleName();
-            boolean exists = repository.existsByPackageNameAndClassName(packageName, className);
+            String commandName = clazz.getSimpleName();
+            CommandEntity metadata = new CommandEntity();
+            boolean exists = commandRepository.existsByCommandName(commandName);
             if (exists) {
-                continue; // Skip already saved command
+                metadata=commandRepository.findByCommandName(commandName);
             }
-            CommandMetadataEntity metadata = new CommandMetadataEntity();
-            metadata.setClassName(clazz.getSimpleName());
-            metadata.setPackageName(clazz.getPackageName());
-            metadata.setName(annotation.name());
-            metadata.setDescription(annotation.description());
-            metadata.setModule(annotation.module());
 
-            repository.save(metadata);
+            metadata.setCommandPackageName(clazz.getName());
+            metadata.setEntityPackageName(getEntityFullClassNameFromCommandClass(clazz.getName()));
+            metadata.setDescription(annotation.description());
+            metadata.setModuleName(annotation.module());
+            metadata.setCommandName(clazz.getSimpleName());
+
+            commandRepository.save(metadata);
         }
+    }
+
+    public static String getEntityFullClassNameFromCommandClass(String commandClassName) {
+        try {
+            Class<?> commandClass = Class.forName(commandClassName);
+            Type genericSuperclass = commandClass.getGenericSuperclass();
+
+            if (genericSuperclass instanceof ParameterizedType parameterizedType) {
+                Type typeArg = parameterizedType.getActualTypeArguments()[0];
+                if (typeArg instanceof Class<?> clazz) {
+                    return clazz.getName(); // ✅ full name with package
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
     }
 }

@@ -102,12 +102,12 @@ public class CommandProcessorImpl implements CommandProcessor {
         if (taskId != null) {
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Operation correction sent for\n  verification. Task id is: " + responseTaskId
+                    "message", "Operation correction sent for  verification. Task id i: " + responseTaskId
             ));
         }
         return ResponseEntity.ok(Map.of(
                 "status", "success",
-                "message", "Task sent for verification\n Task id is: " + responseTaskId
+                "message", "Task sent for verification Task id: " + responseTaskId
         ));
     }
 
