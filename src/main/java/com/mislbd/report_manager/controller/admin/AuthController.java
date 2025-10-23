@@ -1,11 +1,16 @@
 package com.mislbd.report_manager.controller.admin;
+import com.mislbd.report_manager.command.CreateNewUserCommand;
+import com.mislbd.report_manager.command.UpdateReportGroupCommand;
+import com.mislbd.report_manager.command.UserModificationCommand;
 import com.mislbd.report_manager.configuration.annotation.CommandAttribute;
+import com.mislbd.report_manager.configuration.aopConfig.service.CommandProcessor;
 import com.mislbd.report_manager.criteria.UserSearchCriteria;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
 import com.mislbd.report_manager.domain.admin.UserDomain;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.service.admin.AuthService;
+import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -17,22 +22,22 @@ import java.net.UnknownHostException;
 
 @RestController
 @RequestMapping("/admin/auth")
+@RequiredArgsConstructor
 public class AuthController {
-
-
+    @Autowired
+    CommandProcessor commandProcessor;
     @Autowired
     private AuthService authService;
 
+
     @PostMapping("/register")
-    @CommandAttribute("CREATE_NEW_USER")
-    public ResponseEntity<?> register(@RequestBody UserEntity request) {
-        return authService.saveUser(request);
+    public ResponseEntity<?> register(@RequestBody UserEntity data) {
+        return ResponseEntity.ok(commandProcessor.executeCommand(new CreateNewUserCommand(data)));
     }
 
     @PutMapping("/update-user")
-    @CommandAttribute("MODIFICATION_USER")
-    public ResponseEntity<?> updateUser(@RequestBody UserEntity request) {
-        return  authService.updateUser(request);
+    public ResponseEntity<?> updateUser(@RequestBody UserEntity data) {
+        return ResponseEntity.ok(commandProcessor.executeCommand(new UserModificationCommand(data)));
     }
 
     @PostMapping("/login")
@@ -62,5 +67,6 @@ public class AuthController {
     ) {
         return authService.getUsers(criteria, pageable);
     }
+
 }
 

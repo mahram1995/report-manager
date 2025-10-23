@@ -1,0 +1,71 @@
+package com.mislbd.report_manager.configuration.aopConfig.processor;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mislbd.report_manager.configuration.annotation.*;
+import jakarta.annotation.PostConstruct;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Component;
+
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
+@Component
+public class CommandListenerProcessor {
+    private final ApplicationContext applicationContext;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Map<String, Object> operationHandlerMap = new HashMap<>();
+    public CommandListenerProcessor(ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
+    }
+
+    @PostConstruct
+    public void init() {
+        Map<String, Object> beans = applicationContext.getBeansWithAnnotation(ApprovalFlowTaskListener.class);
+        for (Object bean : beans.values()) {
+            ApprovalFlowTaskListener listener = bean.getClass().getAnnotation(ApprovalFlowTaskListener.class);
+            operationHandlerMap.put(listener.operation(), bean);
+        }
+    }
+    public void publishCommandListener(String commandName, String payload, String action ){
+        Object handler = operationHandlerMap.get(commandName);
+        if(handler!=null){
+            for (Method method : handler.getClass().getDeclaredMethods()) {
+                if (matchesAction(method, action)) {
+                    try {
+                        method.setAccessible(true);
+
+                        if (method.getParameterCount() == 1) {
+                            Class<?> paramType = method.getParameterTypes()[0];
+
+                            // Convert JSON string to the method's parameter type
+                            Object deserializedPayload = objectMapper.readValue(payload, paramType);
+
+                            Object result = method.invoke(handler, deserializedPayload);
+
+
+
+                        } else {
+                            throw new IllegalArgumentException("Method must accept exactly one parameter (the payload).");
+                        }
+
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to execute approval method" + e.toString());
+                    }
+                }
+            }
+        }
+
+
+    }
+
+    private boolean matchesAction(Method method, String action) {
+        return switch (action.toUpperCase()) {
+            case "START" -> method.isAnnotationPresent(OnStart.class);
+            case "APPROVE" -> method.isAnnotationPresent(OnApprove.class);
+            case "CORRECTION" -> method.isAnnotationPresent(OnCorrection.class);
+            case "REJECTION" -> method.isAnnotationPresent(OnRejection.class);
+            default -> false;
+        };
+    }
+}

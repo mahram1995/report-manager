@@ -1,5 +1,6 @@
 package com.mislbd.report_manager.service.admin;
 
+import com.mislbd.report_manager.configuration.aopConfig.domain.CommandResponse;
 import com.mislbd.report_manager.entity.admin.ReportGroupEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -11,7 +12,7 @@ import java.util.Optional;
 public interface ReportGroupService {
     List<ReportGroupEntity> findAllReportGroup();
     Optional<ReportGroupEntity> findById(Long id);
-    ResponseEntity<?> saveReportGroup(ReportGroupEntity data);
-    ResponseEntity<?> updateReportGroup(ReportGroupEntity data);
+    CommandResponse<?> saveReportGroup(ReportGroupEntity data);
+    CommandResponse<?> updateReportGroup(ReportGroupEntity data);
 
 }

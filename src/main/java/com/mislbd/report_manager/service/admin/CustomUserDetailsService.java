@@ -3,7 +3,7 @@ package com.mislbd.report_manager.service.admin;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.exception.UsernameNotFoundException;
 
-import com.mislbd.report_manager.repository.admin.SecuUserRepository;
+import com.mislbd.report_manager.repository.admin.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.security.core.userdetails.User;
@@ -16,7 +16,7 @@ import java.util.ArrayList;
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
     @Autowired
-    private SecuUserRepository userRepo;
+    private UserRepository userRepo;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

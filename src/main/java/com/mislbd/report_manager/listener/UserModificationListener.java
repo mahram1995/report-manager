@@ -23,7 +23,7 @@ public class UserModificationListener {
 
     @OnApprove
     public ResponseEntity<?> doOnApproveTransaction(UserEntity payload) {
-        return authService.updateUser(payload);
+        return null;
 
     }
 

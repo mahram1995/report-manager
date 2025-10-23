@@ -8,10 +8,19 @@ spring:
     username: hims
     password: root
 
+    hikari:
+      maximum-pool-size: 10
+      pool-name: HikariCP
+      minimum-idle: 2
+      idle-timeout: 30000          # 30 seconds
+      max-lifetime: 1800000        # 30 minutes
+      connection-timeout: 30000    # 30 seconds
+      auto-commit: true
+
   jpa:
     database-platform: org.hibernate.dialect.OracleDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     properties:
         hibernate:
           format_sql: true
@@ -27,3 +36,12 @@ springdoc:
     doc-expansion: none
     tags-sorter: alpha # Sort controllers alphabetically
     operations-sorter: alpha # Sort operations inside controllers alphabetically
+  api-docs:
+   enabled: true
+   swagger-ui:
+    enabled: true
+   show-actuator: true
+   use-fqn: true
+   model-converters:
+    jackson:
+      enabled: true

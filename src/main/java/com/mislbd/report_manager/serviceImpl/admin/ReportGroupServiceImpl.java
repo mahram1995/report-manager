@@ -1,14 +1,17 @@
 package com.mislbd.report_manager.serviceImpl.admin;
 
+import com.mislbd.report_manager.configuration.aopConfig.domain.CommandResponse;
 import com.mislbd.report_manager.configuration.aopConfig.entity.ApiResponse;
 import com.mislbd.report_manager.entity.admin.ReportGroupEntity;
 import com.mislbd.report_manager.repository.admin.ReportGroupRepository;
 import com.mislbd.report_manager.service.admin.ReportGroupService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
 
+@Component
 public class ReportGroupServiceImpl implements ReportGroupService {
     private final ReportGroupRepository repository;
 
@@ -27,16 +30,13 @@ public class ReportGroupServiceImpl implements ReportGroupService {
     }
 
     @Override
-    public ResponseEntity<?> saveReportGroup(ReportGroupEntity data) {
-        repository.save(data);
-        return ResponseEntity.ok(new ApiResponse<>("Dave successfully", true, data));
+    public CommandResponse<?> saveReportGroup(ReportGroupEntity data) {
+        return new CommandResponse<>(repository.save(data));
 
     }
 
     @Override
-    public ResponseEntity<?> updateReportGroup(ReportGroupEntity data) {
-        repository.save(data);
-        return ResponseEntity.ok(new ApiResponse<>("Update successfully", true, null));
-
+    public  CommandResponse<?> updateReportGroup(ReportGroupEntity data) {
+        return new CommandResponse<>(repository.save(data));
     }
 }

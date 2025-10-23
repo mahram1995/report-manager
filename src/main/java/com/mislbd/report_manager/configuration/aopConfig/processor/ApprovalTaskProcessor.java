@@ -1,86 +1,132 @@
 package com.mislbd.report_manager.configuration.aopConfig.processor;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.mislbd.report_manager.configuration.annotation.ApprovalFlowTaskListener;
-import com.mislbd.report_manager.configuration.annotation.OnApprove;
-import com.mislbd.report_manager.configuration.annotation.OnCorrection;
-import com.mislbd.report_manager.configuration.annotation.OnRejection;
-import com.mislbd.report_manager.configuration.aopConfig.service.TaskInstanceService;
-import jakarta.annotation.PostConstruct;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
+import com.mislbd.report_manager.configuration.aopConfig.domain.CommandResponse;
+import com.mislbd.report_manager.exception.CommandValidationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import java.lang.reflect.Method;
 
-import java.util.HashMap;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Component
-public class ApprovalTaskProcessor implements ApplicationContextAware {
+public class ApprovalTaskProcessor {
 
-        private ApplicationContext applicationContext;
 
-        private final Map<String, Object> operationHandlerMap = new HashMap<>();
-        private final ObjectMapper objectMapper = new ObjectMapper();  // Jackson for JSON → Object
+    private final CommandHandlerAnnotationProcessor commandHandlerAnnotationProcessor;
+    private final CommandListenerProcessor commandListenerProcessor;
+    private final CommandValidatorAnnotationProcessor commandValidator;
 
-        @PostConstruct
-        public void init() {
-            Map<String, Object> beans = applicationContext.getBeansWithAnnotation(ApprovalFlowTaskListener.class);
-            for (Object bean : beans.values()) {
-                ApprovalFlowTaskListener listener = bean.getClass().getAnnotation(ApprovalFlowTaskListener.class);
-                operationHandlerMap.put(listener.operation(), bean);
+    private final ObjectMapper objectMapper = new ObjectMapper();  // Jackson for JSON → Object
+
+    public ApprovalTaskProcessor(CommandHandlerAnnotationProcessor commandHandlerAnnotationProcessor, CommandListenerProcessor commandListenerProcessor, CommandValidatorAnnotationProcessor commandValidator) {
+        this.commandHandlerAnnotationProcessor = commandHandlerAnnotationProcessor;
+        this.commandListenerProcessor = commandListenerProcessor;
+        this.commandValidator = commandValidator;
+    }
+
+
+
+    public ResponseEntity<?> verifyOperation(String commandName, String payload, String action) {
+        CommandResponse<?> response = null;
+            if(action.equals("APPROVE")){
+                 response = executeApproveCommand(
+                        "CreateNewUserCommand",
+                        "UserEntity",
+                        payload,
+                         r -> {
+                             // publish command listener on APPROVE
+                             commandListenerProcessor.publishCommandListener(commandName,payload,action);
+                         }
+                );
+            }else{
+                // publish command listener on REJECTION and CORRECTION
+                commandListenerProcessor.publishCommandListener(commandName,payload,action);
             }
-        }
+            return ResponseEntity.ok(response);
 
-        public ResponseEntity<?> verifyOperation(String operation, String payload, String action) {
-            Object handler = operationHandlerMap.get(operation);
-            if (handler == null) {
-                throw new IllegalArgumentException("No handler found for operation: " + operation);
+    }
+
+
+
+    public  CommandResponse<?>  executeApproveCommand(String commandClassName, String entityClassName, Object payload, Consumer<CommandResponse<?>> callback) {
+        String basePackage = "com.mislbd.report_manager";
+
+        try {
+            // 1️⃣ Load entity class dynamically
+            Class<?> entityClass = Class.forName(basePackage + ".entity.admin." + entityClassName);
+
+            Object payloadObject;
+
+            if (payload instanceof String payloadString) {
+                // parse JSON string into Map
+                payloadObject = objectMapper.readValue(payloadString, Map.class);
+            } else {
+                payloadObject = payload;
             }
+            // 2️⃣ Convert payload map -> entity instance
+            Object entity = objectMapper.convertValue(payloadObject, entityClass);
 
-            for (Method method : handler.getClass().getDeclaredMethods()) {
-                if (matchesAction(method, action)) {
-                    try {
-                        method.setAccessible(true);
+            // 3️⃣ Load command class dynamically
+            Class<?> commandClass = Class.forName(basePackage + ".command." + commandClassName);
 
-                        if (method.getParameterCount() == 1) {
-                            Class<?> paramType = method.getParameterTypes()[0];
+            // 4️⃣ Find constructor with entity parameter
+            Constructor<?> constructor = commandClass.getConstructor(entityClass);
 
-                            // Convert JSON string to the method's parameter type
-                            Object deserializedPayload = objectMapper.readValue(payload, paramType);
+            // 5️⃣ Create command instance
+            Object command = constructor.newInstance(entity);
 
-                            Object result=  method.invoke(handler, deserializedPayload);
+            // validate command before approve
+            Boolean isCommandValidate=commandValidator.runCommandValidator(command);
+            CommandResponse response=null;
 
-                              //  taskService.deleteTaskByTaskId(taskId);
-
-
-                            return (ResponseEntity<?>) result;
-                        } else {
-                            throw new IllegalArgumentException("Method must accept exactly one parameter (the payload).");
-                        }
-
-                    } catch (Exception e) {
-                        throw new RuntimeException("Failed to execute approval method"+ e.toString());
-                    }
-                }
+            if(isCommandValidate){
+                response = (CommandResponse<?>)  commandHandlerAnnotationProcessor.runCommand(command);
             }
+            // call command handler process for doing the operation
 
-            throw new RuntimeException("No method found for action: " + action + " in operation: " + operation);
-        }
+            // ✅ 8️⃣ Call callback if provided (on success)
+            if (callback != null && response != null) {
+                callback.accept(response);
+            }
+            return response;
 
-        private boolean matchesAction(Method method, String action) {
-            return switch (action.toUpperCase()) {
-                case "APPROVE" -> method.isAnnotationPresent(OnApprove.class);
-                case "CORRECTION" -> method.isAnnotationPresent(OnCorrection.class);
-                case "REJECTION" -> method.isAnnotationPresent(OnRejection.class);
-                default -> false;
-            };
-        }
 
-        @Override
-        public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-            this.applicationContext = applicationContext;
+
+        } catch (InvocationTargetException ex) {
+           return null;
+        } catch (JsonMappingException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
     }
+
+
+
+    private RuntimeException unwrapException(Throwable e) {
+        if (e instanceof InvocationTargetException ite && ite.getCause() != null) {
+            return unwrapException(ite.getCause());
+        }
+        if (e instanceof CommandValidationException) {
+            return (CommandValidationException) e;
+        }
+        return new RuntimeException(e);
+    }
+
+
+}

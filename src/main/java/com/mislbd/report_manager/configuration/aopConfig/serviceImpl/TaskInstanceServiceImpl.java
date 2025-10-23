@@ -88,7 +88,7 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
         Object response = null;
         if(action.contains("APPROVE")){
             response= processor.verifyOperation(task.getCommandName(), task.getPayload(), action);
-            taskRepo.deleteByTaskId(taskId);
+           // taskRepo.deleteByTaskId(taskId);
         }else if (action.contains("CORRECTION")){
             task.setStatus("CORRECTION");
             taskRepo.save(task);

@@ -1,5 +1,6 @@
 package com.mislbd.report_manager.service.admin;
 
+import com.mislbd.report_manager.configuration.aopConfig.domain.CommandResponse;
 import com.mislbd.report_manager.criteria.UserSearchCriteria;
 import com.mislbd.report_manager.domain.admin.AuthRequestDomain;
 import com.mislbd.report_manager.domain.admin.ChangePasswordDomain;
@@ -15,8 +16,8 @@ import java.net.UnknownHostException;
 @Service
 public interface AuthService {
 
-    public ResponseEntity<?> saveUser(UserEntity user);
-    public ResponseEntity<?> updateUser(UserEntity user);
+    public CommandResponse<?> saveUser(UserEntity user);
+    public CommandResponse<?> updateUser(UserEntity user);
     public ResponseEntity<?> login(AuthRequestDomain request) throws UnknownHostException;
     public ResponseEntity<String> logout( String username, String logoutType);
     public ResponseEntity<?> changePassword(ChangePasswordDomain req);

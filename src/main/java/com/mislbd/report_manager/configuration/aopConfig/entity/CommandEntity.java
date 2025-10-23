@@ -21,6 +21,8 @@ public class CommandEntity {
     private String commandName;
     private String moduleName;
     private String activityName;
+    private String className;
+    private String packageName;
     private Boolean isVisibleInUI;
     private Boolean isApprovalFlowRequired;
     private String approvalFlowLayer;

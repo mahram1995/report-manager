@@ -1,6 +1,6 @@
 package com.mislbd.report_manager.serviceImpl.admin;
 
-import com.mislbd.report_manager.configuration.aopConfig.entity.ApiResponse;
+import com.mislbd.report_manager.configuration.aopConfig.domain.CommandResponse;
 import com.mislbd.report_manager.configuration.jwtConfig.JwtUtil;
 import com.mislbd.report_manager.configuration.security.SecurityConfig;
 import com.mislbd.report_manager.criteria.UserSearchCriteria;
@@ -12,7 +12,7 @@ import com.mislbd.report_manager.enam.UserStatus;
 import com.mislbd.report_manager.entity.admin.UserEntity;
 import com.mislbd.report_manager.entity.admin.UserLoginInfoEntity;
 import com.mislbd.report_manager.mapper.admin.UserMapper;
-import com.mislbd.report_manager.repository.admin.SecuUserRepository;
+import com.mislbd.report_manager.repository.admin.UserRepository;
 import com.mislbd.report_manager.repository.admin.UserLoginInfoRepository;
 import com.mislbd.report_manager.service.admin.AuthService;
 import com.mislbd.report_manager.specification.UserSpecification;
@@ -31,7 +31,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -43,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private SecurityConfig securityConfig;
     @Autowired
-    private SecuUserRepository userRepo;
+    private UserRepository userRepo;
     @Autowired
     private UserLoginInfoRepository loginRepo;
     @Autowired
@@ -52,32 +51,25 @@ public class AuthServiceImpl implements AuthService {
     private PasswordEncoder encoder;
 
     @Override
-    public ResponseEntity<?> saveUser(UserEntity data) {
+    public CommandResponse<?> saveUser(UserEntity data) {
 
         data.setPassword(encoder.encode(data.getPassword()));
         data.setUserPhoto(data.getUserPhoto() != null ? data.getUserPhoto() : null);
         data.setUserStatus(UserStatus.ACTIVE.name());
-        userRepo.save(data);
 
-        return ResponseEntity.ok(new ApiResponse<>("User create successfully", true, data));
+
+        return new CommandResponse<>(userRepo.save(data));
     }
 
     @Override
-    public ResponseEntity<?> updateUser(UserEntity data) {
+    public CommandResponse<?> updateUser(UserEntity data) {
         UserEntity entity = userRepo.findById(data.getId()).get();
 
-        if (!Objects.equals(entity.getUserStatus(), data.getUserStatus())) {
-            userRepo.save(data);
-            return ResponseEntity.ok(new ApiResponse<>("User successfully " + data.getUserStatus(), true, data));
-        }
         if(StringUtils.hasText(data.getPassword())){
             entity.setPassword(encoder.encode(data.getPassword()));
-            userRepo.save(entity);
-            return ResponseEntity.ok(new ApiResponse<>("Password reset Successfully", true, null));
         }
         data.setPassword(entity.getPassword());
-        userRepo.save(data);
-        return ResponseEntity.ok(new ApiResponse<>("User update successfully", true, data));
+        return new CommandResponse<>(userRepo.save(data));
     }
 
     @Override
