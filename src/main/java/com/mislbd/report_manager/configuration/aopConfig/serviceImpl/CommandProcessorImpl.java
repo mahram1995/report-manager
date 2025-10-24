@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -33,6 +34,8 @@ public class CommandProcessorImpl implements CommandProcessor {
     private CommandValidatorAnnotationProcessor commandValidator;
     private final CommandService commandService;
     private final CommandListenerProcessor commandListenerProcessor;
+    @Autowired
+    private HttpServletRequest request;
 
     public CommandProcessorImpl(TaskInstanceService taskService, CommandHandlerAnnotationProcessor commandAnnotationProcessor, CommandService commandService, CommandListenerProcessor commandListenerProcessor) {
         this.taskService = taskService;
@@ -44,6 +47,7 @@ public class CommandProcessorImpl implements CommandProcessor {
     @SneakyThrows
     @Override
     public Object executeCommand(Object command) {
+
         String payload = "";
         if (command instanceof Command<?> baseCommand) {
             payload = objectMapper.writeValueAsString(baseCommand.getPayload());
@@ -64,7 +68,16 @@ public class CommandProcessorImpl implements CommandProcessor {
         if (oldTaskId != null) {
             taskId = Long.valueOf(oldTaskId);
         }
+
+        // check the right for execute the command
+        Boolean isRightToExecuteCommand=isRightToExecuteCommand(commandName);
+        if(!isRightToExecuteCommand){
+            throw new RuntimeException("You have no right to execute this command");
+        }
+
+        // validate the command before execute
         Boolean isCommandValidate=commandValidator.runCommandValidator(command);
+
         if(isCommandValidate){ // check is the all command attributes are validate. if command is valid then proceed for next.
             CommandEntity commandEntity = commandService.getCommandByCommandName(commandName);
 
@@ -102,7 +115,7 @@ public class CommandProcessorImpl implements CommandProcessor {
         if (taskId != null) {
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Operation correction sent for  verification. Task id i: " + responseTaskId
+                    "message", "Operation correction sent for  verification. Task id: " + responseTaskId
             ));
         }
         return ResponseEntity.ok(Map.of(
@@ -116,6 +129,20 @@ public class CommandProcessorImpl implements CommandProcessor {
         String simpleName = className.substring(className.lastIndexOf('.') + 1);
         // Insert space before each capital letter (except the first)
         return simpleName.replaceAll("(?<!^)([A-Z])", " $1").trim();
+    }
+
+    public boolean isRightToExecuteCommand(String commandName){
+        String userName=getCurrentUsername();
+        // need to create a class for  of logic
+        return true;
+    }
+
+    public String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            return authentication.getName(); // ✅ username from JWT
+        }
+        return null;
     }
 
 }

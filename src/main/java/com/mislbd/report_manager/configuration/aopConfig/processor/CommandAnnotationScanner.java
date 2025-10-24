@@ -1,9 +1,7 @@
 package com.mislbd.report_manager.configuration.aopConfig.processor;
 
-import com.mislbd.report_manager.configuration.annotation.CommandAttributeTest;
+import com.mislbd.report_manager.configuration.annotation.CommandAttribute;
 import com.mislbd.report_manager.configuration.aopConfig.entity.CommandEntity;
-import com.mislbd.report_manager.configuration.aopConfig.entity.CommandMetadataEntity;
-import com.mislbd.report_manager.configuration.aopConfig.repository.CommandMetadataRepository;
 import com.mislbd.report_manager.configuration.aopConfig.repository.CommandRepository;
 import org.reflections.Reflections;
 import org.springframework.stereotype.Component;
@@ -28,11 +26,11 @@ public class CommandAnnotationScanner {
         // 🔍 Scan your base package
         Reflections reflections = new Reflections("com.mislbd.report_manager");
 
-        // Find all classes annotated with CommandAttribute
-        Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(CommandAttributeTest.class);
+        // Find all classes annotated with CommandAttributeTest
+        Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(CommandAttribute.class);
 
         for (Class<?> clazz : annotatedClasses) {
-            CommandAttributeTest annotation = clazz.getAnnotation(CommandAttributeTest.class);
+            CommandAttribute annotation = clazz.getAnnotation(CommandAttribute.class);
             String commandName = clazz.getSimpleName();
             CommandEntity metadata = new CommandEntity();
             boolean exists = commandRepository.existsByCommandName(commandName);

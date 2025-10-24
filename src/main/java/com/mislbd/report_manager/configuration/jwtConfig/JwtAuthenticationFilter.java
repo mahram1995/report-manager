@@ -1,5 +1,6 @@
 package com.mislbd.report_manager.configuration.jwtConfig;
 
+import com.mislbd.report_manager.configuration.aopConfig.auditListener.AuditorContextHolder;
 import com.mislbd.report_manager.service.admin.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -34,6 +35,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwt = authHeader.substring(7);
             username = jwtUtil.extractUsername(jwt);
+            if (username != null) {
+                AuditorContextHolder.setCurrentUser(username); // ✅ store in ThreadLocal
+            }
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {

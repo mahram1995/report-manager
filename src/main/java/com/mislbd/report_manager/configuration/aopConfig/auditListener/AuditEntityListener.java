@@ -1,8 +1,9 @@
-package com.mislbd.report_manager.configuration.aopConfig.listener;
+package com.mislbd.report_manager.configuration.aopConfig.auditListener;
 
 import com.mislbd.report_manager.configuration.aopConfig.entity.BaseEntity;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -15,30 +16,32 @@ public class AuditEntityListener {
     @PrePersist
     public void setCreatedInfo(Object entity) {
         if (entity instanceof BaseEntity base) {
-            base.setCreatedBy(getCurrentUsername());
-            base.setCreateDate(LocalDate.now());
-            base.setCreatedTerminal(getClientIP());
-            base.setCreateAgent(getUserAgent());
+            if (base.getCreatedBy() == null) {
+                base.setCreatedBy(AuditorContextHolder.getCurrentUser());
+            }
+            if (base.getCreateDate() == null) {
+                base.setCreateDate(LocalDate.now());
+            }
+            if (base.getCreatedTerminal() == null) {
+                base.setCreatedTerminal(getClientIP());
+            }
+            if (base.getCreateAgent() == null) {
+                base.setCreateAgent(getUserAgent());
+            }
         }
     }
 
     @PreUpdate
     public void setUpdatedInfo(Object entity) {
         if (entity instanceof BaseEntity base) {
-            base.setUpdateBy(getCurrentUsername());
+            base.setUpdateBy(AuditorContextHolder.getCurrentUser());
             base.setUpdateDate(LocalDate.now());
             base.setUpdateTerminal(getClientIP());
             base.setUpdateAgent(getUserAgent());
         }
     }
 
-    private String getCurrentUsername() {
-        try {
-            return SecurityContextHolder.getContext().getAuthentication().getName();
-        } catch (Exception e) {
-            return "system";
-        }
-    }
+
 
     private String getClientIP() {
         try {
@@ -59,4 +62,6 @@ public class AuditEntityListener {
             return "unknown";
         }
     }
+
+
 }

@@ -1,7 +1,7 @@
 package com.mislbd.report_manager.entity.admin;
 
 import com.mislbd.report_manager.configuration.aopConfig.entity.BaseEntity;
-import com.mislbd.report_manager.configuration.aopConfig.listener.AuditEntityListener;
+import com.mislbd.report_manager.configuration.aopConfig.auditListener.AuditEntityListener;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

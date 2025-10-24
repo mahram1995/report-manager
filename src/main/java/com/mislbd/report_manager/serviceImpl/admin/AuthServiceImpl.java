@@ -63,13 +63,22 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public CommandResponse<?> updateUser(UserEntity data) {
-        UserEntity entity = userRepo.findById(data.getId()).get();
+        UserEntity entity =userRepo.findById(data.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         if(StringUtils.hasText(data.getPassword())){
             entity.setPassword(encoder.encode(data.getPassword()));
         }
-        data.setPassword(entity.getPassword());
-        return new CommandResponse<>(userRepo.save(data));
+        entity.setPassword(entity.getPassword());
+        entity.setEmail(data.getEmail());
+        entity.setMiddleName(data.getMiddleName());
+        entity.setPhone(data.getPhone());
+        entity.setFirstName(data.getFirstName());
+        entity.setLastName(data.getLastName());
+        entity.setUserStatus(data.getUserStatus());
+        entity.setLockReason(data.getLockReason());
+        entity.setActiveReason(data.getActiveReason());
+        return new CommandResponse<>(userRepo.save(entity));
     }
 
     @Override

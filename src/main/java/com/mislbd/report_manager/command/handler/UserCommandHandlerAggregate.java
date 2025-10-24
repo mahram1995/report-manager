@@ -23,7 +23,7 @@ public class UserCommandHandlerAggregate {
     @Transactional
     @CommandHandler
     public CommandResponse<?> createUser(CreateNewUserCommand command) {
-        //service.saveUser(command.getPayload());
+        service.saveUser(command.getPayload());
         return  new CommandResponse<>("User Name is :" + command.getPayload().getUserName());
     }
 

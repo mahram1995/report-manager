@@ -1,6 +1,6 @@
 package com.mislbd.report_manager.configuration.aopConfig.entity;
 
-import com.mislbd.report_manager.configuration.aopConfig.listener.AuditEntityListener;
+import com.mislbd.report_manager.configuration.aopConfig.auditListener.AuditEntityListener;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,10 +12,13 @@ import java.time.LocalDate;
 @Getter
 @EntityListeners(AuditEntityListener.class)
 public class BaseEntity {
-
+    @Column(updatable = false)
     private String createdBy;
+    @Column(updatable = false)
     private LocalDate createDate;
+    @Column(updatable = false)
     private String createAgent;
+    @Column(updatable = false)
     private String createdTerminal;
 
     private String verifyBy;
