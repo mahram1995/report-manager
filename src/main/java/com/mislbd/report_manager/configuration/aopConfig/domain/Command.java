@@ -1,10 +1,13 @@
 package com.mislbd.report_manager.configuration.aopConfig.domain;
 
+import lombok.NoArgsConstructor;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+@NoArgsConstructor
 public abstract class Command<P> implements Serializable {
     private String processId;
     public String source;
@@ -16,15 +19,13 @@ public abstract class Command<P> implements Serializable {
     private String initiator;
     private Long initiatorBranch;
     private String initiatorTerminal;
+    private String initiatorClient;
     private String verifier;
     private Long verifierBranch;
     private String verifierTerminal;
     private P payload;
     private Map<String, String> arguments;
 
-    public Command() {
-        this.isApprovalFlowRequired = Boolean.FALSE;
-    }
 
     public Command(P payload) {
         this.isApprovalFlowRequired = Boolean.FALSE;
@@ -109,6 +110,14 @@ public abstract class Command<P> implements Serializable {
 
     public String getInitiatorTerminal() {
         return this.initiatorTerminal;
+    }
+
+    public String getInitiatorClient() {
+        return initiatorClient;
+    }
+
+    public void setInitiatorClient(String initiatorClient) {
+        this.initiatorClient = initiatorClient;
     }
 
     public void setInitiatorTerminal(String initiatorTerminal) {

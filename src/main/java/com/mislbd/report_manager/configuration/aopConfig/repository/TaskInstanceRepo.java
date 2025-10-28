@@ -26,4 +26,6 @@ public interface TaskInstanceRepo extends JpaRepository<TaskInstanceEntity, Long
                                       @Param("maker") String maker,
                                       @Param("status") String status,
                                       Pageable pageable);
+
+    boolean existsByCommandNameAndDomainReference(String commandName, String reference);
 }

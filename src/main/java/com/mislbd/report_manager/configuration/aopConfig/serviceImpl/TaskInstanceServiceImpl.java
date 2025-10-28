@@ -41,6 +41,11 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
     }
 
     @Override
+    public boolean existsTaskByDomainReference(String commandName, String reference) {
+        return taskRepo.existsByCommandNameAndDomainReference(commandName,reference);
+    }
+
+    @Override
     public TaskInstanceEntity getTaskByTaskId(Long taskId) {
         return taskRepo.findByTaskId(taskId);
     }
@@ -85,6 +90,8 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
     @Transactional
     public ResponseEntity<?> verifyOperation(Long taskId, String action, String delegateUser) {
         TaskInstanceEntity task= getTaskByTaskId(taskId);
+
+
         Object response = null;
         if(action.contains("APPROVE")){
             response= processor.verifyOperation(task.getCommandName(), task.getPayload(), action);

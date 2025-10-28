@@ -2,6 +2,7 @@ package com.mislbd.report_manager.configuration.aopConfig.processor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mislbd.report_manager.configuration.annotation.*;
+import com.mislbd.report_manager.configuration.aopConfig.domain.Command;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -27,7 +28,7 @@ public class CommandListenerProcessor {
             operationHandlerMap.put(listener.operation(), bean);
         }
     }
-    public void publishCommandListener(String commandName, String payload, String action ){
+    public void publishCommandListener(String commandName, Object payload, String action ){
         Object handler = operationHandlerMap.get(commandName);
         if(handler!=null){
             for (Method method : handler.getClass().getDeclaredMethods()) {
@@ -39,9 +40,9 @@ public class CommandListenerProcessor {
                             Class<?> paramType = method.getParameterTypes()[0];
 
                             // Convert JSON string to the method's parameter type
-                            Object deserializedPayload = objectMapper.readValue(payload, paramType);
+                           // Object deserializedPayload = objectMapper.readValue(payload, paramType);
 
-                            Object result = method.invoke(handler, deserializedPayload);
+                            Object result = method.invoke(handler, payload);
 
 
 
@@ -50,7 +51,7 @@ public class CommandListenerProcessor {
                         }
 
                     } catch (Exception e) {
-                        throw new RuntimeException("Failed to execute approval method" + e.toString());
+                        throw new RuntimeException("Failed to execute command listener " + e.toString());
                     }
                 }
             }

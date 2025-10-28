@@ -30,7 +30,8 @@ public class UserCommandHandlerAggregate {
     @Transactional
     @CommandHandler
     public CommandResponse<?> updateUser(UserModificationCommand command) {
-        return  service.updateUser(command.getPayload());
+        service.updateUser(command.getPayload());
+        return  new CommandResponse<>("User Name is :" + command.getPayload().getUserName());
     }
 
 }

@@ -14,6 +14,7 @@ import java.text.ParseException;
 public interface TaskInstanceService {
     public Long saveTaskInstance(TaskInstanceEntity entity);
     public TaskInstanceEntity getTaskByUserName(String userName);
+    public boolean existsTaskByDomainReference(String commandName,String reference);
     public TaskInstanceEntity getTaskByTaskId(Long taskId);
     String getApprovalFlowTaskPayload(Long taskId);
 

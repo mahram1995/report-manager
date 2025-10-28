@@ -1,7 +1,11 @@
 package com.mislbd.report_manager.configuration.aopConfig.serviceImpl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mislbd.report_manager.configuration.aopConfig.auditListener.AuditorContextHolder;
 import com.mislbd.report_manager.configuration.aopConfig.domain.Command;
+import com.mislbd.report_manager.configuration.aopConfig.domain.CommandResponse;
+import com.mislbd.report_manager.configuration.aopConfig.domain.HasIdentity;
 import com.mislbd.report_manager.configuration.aopConfig.entity.CommandEntity;
 import com.mislbd.report_manager.configuration.aopConfig.entity.TaskInstanceEntity;
 import com.mislbd.report_manager.configuration.aopConfig.processor.CommandHandlerAnnotationProcessor;
@@ -14,6 +18,7 @@ import com.mislbd.report_manager.enam.CommandStatus;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +27,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Component
@@ -30,30 +36,46 @@ public class CommandProcessorImpl implements CommandProcessor {
     private ObjectMapper objectMapper;
     private final TaskInstanceService taskService;
     private final CommandHandlerAnnotationProcessor commandAnnotationProcessor;
-    @Autowired
-    private CommandValidatorAnnotationProcessor commandValidator;
+    private final CommandValidatorAnnotationProcessor commandValidator;
     private final CommandService commandService;
     private final CommandListenerProcessor commandListenerProcessor;
+    private  final AuditorContextHolder contextHolder;
     @Autowired
     private HttpServletRequest request;
 
-    public CommandProcessorImpl(TaskInstanceService taskService, CommandHandlerAnnotationProcessor commandAnnotationProcessor, CommandService commandService, CommandListenerProcessor commandListenerProcessor) {
+    public CommandProcessorImpl(TaskInstanceService taskService, CommandHandlerAnnotationProcessor commandAnnotationProcessor, CommandValidatorAnnotationProcessor commandValidator, CommandService commandService, CommandListenerProcessor commandListenerProcessor, AuditorContextHolder contextHolder) {
         this.taskService = taskService;
         this.commandAnnotationProcessor = commandAnnotationProcessor;
+        this.commandValidator = commandValidator;
         this.commandService = commandService;
         this.commandListenerProcessor = commandListenerProcessor;
+        this.contextHolder = contextHolder;
     }
 
     @SneakyThrows
     @Override
     public Object executeCommand(Object command) {
+        String commandName = command.getClass().getSimpleName();
+        String domainReference="";
 
-        String payload = "";
-        if (command instanceof Command<?> baseCommand) {
-            payload = objectMapper.writeValueAsString(baseCommand.getPayload());
+        // check is hasIdentity
+        if (command instanceof HasIdentity hasIdentity) {
+             domainReference = hasIdentity.getIdentity();
+            if(taskService.existsTaskByDomainReference(commandName,domainReference)){
+                throw new RuntimeException("Task already exists with same reference : " + domainReference);
+            };
         }
 
-        String commandName = command.getClass().getSimpleName();
+
+
+
+        Command  commands = null;
+        String payload = "";
+        if (command instanceof Command<?> baseCommand) {
+            commands=baseCommand;
+            payload = objectMapper.writeValueAsString(baseCommand.getPayload());
+
+        }
 
         // ✅ Get current HTTP request (if exists)
         HttpServletRequest request = ((ServletRequestAttributes)
@@ -63,7 +85,20 @@ public class CommandProcessorImpl implements CommandProcessor {
         String correctionUI = request.getHeader("correctionUI");
         String verifier = request.getHeader("verifier");
         String oldTaskId = request.getHeader("taskId");
+        String terminalIp = request.getHeader("terminalIp");
         String initiator = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        contextHolder.setCommand(commands);
+        contextHolder.setClientIp(terminalIp);
+
+
+        commands.setInitiatorTerminal(terminalIp);
+        commands.setInitiator(getCurrentUsername());
+        commands.setVerifier(verifier);
+        commands.setInitiatingTime(LocalDateTime.now());
+        commands.setInitiatorClient(getUserAgent());
+
+
         Long taskId = null;
         if (oldTaskId != null) {
             taskId = Long.valueOf(oldTaskId);
@@ -80,12 +115,14 @@ public class CommandProcessorImpl implements CommandProcessor {
 
         if(isCommandValidate){ // check is the all command attributes are validate. if command is valid then proceed for next.
             CommandEntity commandEntity = commandService.getCommandByCommandName(commandName);
+            commands.setApprovalFlowRequired(commandEntity.getIsApprovalFlowRequired());
+
 
             if (commandEntity.getIsApprovalFlowRequired()) {
                 //save data to task table if approval flow is true
                 commandListenerProcessor.publishCommandListener(commandName,payload, CommandStatus.START.name());
 
-                return saveTaskInstance(commandName, initiator, payload, detailsUI, correctionUI, verifier, taskId);
+                return saveTaskInstance(commandName, initiator, commands, detailsUI, correctionUI, domainReference,verifier, taskId);
             } else {
                 // otherwise execute specific command for do operation
                 return commandAnnotationProcessor.runCommand(command);
@@ -94,8 +131,9 @@ public class CommandProcessorImpl implements CommandProcessor {
         return null;
     }
 
-    private Object saveTaskInstance(String command, String user, String payload,
+    private Object saveTaskInstance(String commandName, String user, Command command,
                                        String detailsUI, String correctionUI,
+                                       String domainReference,
                                        String verifier, Long taskId) {
 
         TaskInstanceEntity task = new TaskInstanceEntity();
@@ -103,11 +141,16 @@ public class CommandProcessorImpl implements CommandProcessor {
             task.setTaskId(taskId);
         }
         task.setMaker(user);
-        task.setActivityName(toReadableName(command));
-        task.setCommandName(command);
-        task.setPayload(payload);
+        task.setActivityName(toReadableName(commandName));
+        task.setCommandName(commandName);
+        try {
+            task.setPayload(objectMapper.writeValueAsString(command));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
         task.setStatus("START");
         task.setTaskDetailsUi(detailsUI);
+        task.setDomainReference(domainReference);
         task.setTaskCorrectionUi(correctionUI);
         task.setVerifier(verifier);
         task.setCreateDate(LocalDate.now());
@@ -118,10 +161,11 @@ public class CommandProcessorImpl implements CommandProcessor {
                     "message", "Operation correction sent for  verification. Task id: " + responseTaskId
             ));
         }
-        return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "message", "Task sent for verification Task id: " + responseTaskId
-        ));
+        return new CommandResponse<>(Map.of(
+                        "status", "success",
+                        "code", 1001,
+                        "taskId", responseTaskId
+                ));
     }
 
     public static String toReadableName(String className) {
@@ -144,5 +188,17 @@ public class CommandProcessorImpl implements CommandProcessor {
         }
         return null;
     }
+
+
+    private String getUserAgent() {
+        try {
+            HttpServletRequest request = ((ServletRequestAttributes)
+                    RequestContextHolder.getRequestAttributes()).getRequest();
+            return request.getHeader("User-Agent");
+        } catch (Exception e) {
+            return "unknown";
+        }
+    }
+
 
 }

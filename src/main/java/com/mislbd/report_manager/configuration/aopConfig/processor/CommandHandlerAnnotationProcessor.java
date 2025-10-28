@@ -2,9 +2,14 @@ package com.mislbd.report_manager.configuration.aopConfig.processor;
 
 import com.mislbd.report_manager.configuration.annotation.CommandAggregate;
 import com.mislbd.report_manager.configuration.annotation.CommandHandler;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -38,7 +43,9 @@ public class CommandHandlerAnnotationProcessor {
         }
     }
     public Object runCommand(Object command){
-        System.out.println(command.getClass());
+
+
+
         HandlerMethod handler = commandHandlers.entrySet().stream()
                 .filter(e -> e.getKey().isAssignableFrom(command.getClass()))
                 .map(Map.Entry::getValue)
@@ -57,4 +64,5 @@ public class CommandHandlerAnnotationProcessor {
     };
 
     private record HandlerMethod(Object bean, Method method) {}
+
 }

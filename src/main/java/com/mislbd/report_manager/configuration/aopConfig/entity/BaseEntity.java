@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @MappedSuperclass
 @Setter
@@ -17,17 +18,21 @@ public class BaseEntity {
     @Column(updatable = false)
     private LocalDate createDate;
     @Column(updatable = false)
+    private LocalDateTime createDateTime;
+    @Column(updatable = false)
     private String createAgent;
     @Column(updatable = false)
     private String createdTerminal;
 
     private String verifyBy;
     private LocalDate verifyDate;
+    private LocalDateTime verifyDateTime;
     private String verifyAgent;
     private String verifyTerminal;
 
     private String updateBy;
     private LocalDate updateDate;
+    private LocalDateTime updateDateTime;
     private String updateAgent;
     private String updateTerminal;
 

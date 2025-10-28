@@ -104,12 +104,13 @@ public class AuthServiceImpl implements AuthService {
         if (user.get().getIsLogin() != null && user.get().getIsLogin().contains("true")) {
             UserLoginInfoEntity loginInfo = (UserLoginInfoEntity) loginRepo.findTopByUserIdOrderByLoginTimeDesc(user.get().getId())
                     .orElse(null);
-            if (loginInfo != null && !loginInfo.getLoginTerminal().equals(request.getLoginTerminal())) {
-                throw new RuntimeException("User already login");
-            } else {
+          //  if (loginInfo != null && !loginInfo.getLoginTerminal().equals(request.getLoginTerminal())) {
+           //     throw new RuntimeException("User already login");
+         //   } else
+
                 token = jwtUtil.generateToken(request.getUserName());
                 return ResponseEntity.ok(entityToDomain(user.get(), token));
-            }
+
 
         }
 
