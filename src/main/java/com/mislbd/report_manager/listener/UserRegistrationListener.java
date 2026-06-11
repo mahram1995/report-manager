@@ -18,26 +18,27 @@ public class UserRegistrationListener {
         this.authService = authService;
     }
     @OnStart
-    public ResponseEntity<?> doOnStart(UserEntity payload) {
+    public ResponseEntity<?> doOnStart(CreateNewUserCommand command ) {
         System.out.println("Listener is call: Command is Start");
         return null;
 
     }
 
     @OnApprove
-    public ResponseEntity<?> doOnApprove(UserEntity payload) {
+    public ResponseEntity<?> doOnApprove(CreateNewUserCommand command) {
         System.out.println("Listener is call: user is saved");
         return null;
 
     }
 
     @OnCorrection
-    public void doOnCorrection(UserEntity payload) {
-        System.out.println("✏️ Sent back for correction: " + payload.getUserName());
+    public void doOnCorrection(CreateNewUserCommand command) {
+        UserEntity domain=command.getPayload();
+        System.out.println("✏️ Sent back for correction: " + domain.getUserName());
     }
 
     @OnRejection
-    public ResponseEntity<?> doOnReject(UserEntity payload) {
+    public ResponseEntity<?> doOnReject(CreateNewUserCommand payload) {
         return ResponseEntity.ok().body(Map.of("message", "Task Rejected successfully"));
     }
 }

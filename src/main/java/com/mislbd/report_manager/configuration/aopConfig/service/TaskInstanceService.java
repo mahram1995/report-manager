@@ -16,6 +16,7 @@ public interface TaskInstanceService {
     public TaskInstanceEntity getTaskByUserName(String userName);
     public boolean existsTaskByDomainReference(String commandName,String reference);
     public TaskInstanceEntity getTaskByTaskId(Long taskId);
+    public TaskInstanceEntity getTaskByDomainRefAndCommandName(String commandName,String reference);
     String getApprovalFlowTaskPayload(Long taskId);
 
     public void deleteTaskByTaskId (Long taskId);

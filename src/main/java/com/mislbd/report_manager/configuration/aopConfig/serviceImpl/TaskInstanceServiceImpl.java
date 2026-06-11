@@ -4,10 +4,13 @@ import com.mislbd.report_manager.configuration.aopConfig.entity.TaskInstanceEnti
 import com.mislbd.report_manager.configuration.aopConfig.processor.ApprovalTaskProcessor;
 import com.mislbd.report_manager.configuration.aopConfig.repository.TaskInstanceRepo;
 import com.mislbd.report_manager.configuration.aopConfig.service.TaskInstanceService;
+import com.mislbd.report_manager.service.admin.AuthService;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.CallableStatementCallback;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -19,11 +22,14 @@ import java.util.Map;
 public class TaskInstanceServiceImpl implements TaskInstanceService {
     private final TaskInstanceRepo taskRepo;
     private  final ApprovalTaskProcessor processor;
+    private  AuthService authService;
+    private final JdbcTemplate jdbcTemplate;
 
-    public TaskInstanceServiceImpl(TaskInstanceRepo taskRepo, ApprovalTaskProcessor processor) {
+    public TaskInstanceServiceImpl(TaskInstanceRepo taskRepo, ApprovalTaskProcessor processor, JdbcTemplate jdbcTemplate) {
         this.taskRepo = taskRepo;
 
         this.processor = processor;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -48,6 +54,11 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
     @Override
     public TaskInstanceEntity getTaskByTaskId(Long taskId) {
         return taskRepo.findByTaskId(taskId);
+    }
+
+    @Override
+    public TaskInstanceEntity getTaskByDomainRefAndCommandName(String commandName, String reference) {
+        return taskRepo.findByCommandNameAndDomainReference(commandName, reference);
     }
 
     @Override
@@ -82,6 +93,7 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
         }
     }
     @Override
+
     public void deleteTaskByTaskId(Long taskId) {
         taskRepo.deleteByTaskId(taskId);
     }
@@ -91,21 +103,24 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
     public ResponseEntity<?> verifyOperation(Long taskId, String action, String delegateUser) {
         TaskInstanceEntity task= getTaskByTaskId(taskId);
 
-
         Object response = null;
         if(action.contains("APPROVE")){
             response= processor.verifyOperation(task.getCommandName(), task.getPayload(), action);
-           // taskRepo.deleteByTaskId(taskId);
+            archiveTaskInstance(taskId,"APPROVE");
+            taskRepo.deleteByTaskId(taskId);
         }else if (action.contains("CORRECTION")){
             task.setStatus("CORRECTION");
+            archiveTaskInstance(taskId,"CORRECTION");
             taskRepo.save(task);
             return ResponseEntity.ok().body(Map.of("message", "Task send for correction successfully"));
         }else if (action.contains("REJECTION")){
             response= processor.verifyOperation(task.getCommandName(), task.getPayload(), action);
             taskRepo.deleteByTaskId(taskId);
+            archiveTaskInstance(taskId,"REJECTION");
         }else if(action.contains("DELEGATE")){
             task.setVerifier(delegateUser);
             taskRepo.save(task);
+            archiveTaskInstance(taskId,"DELEGATE");
             return ResponseEntity.ok().body(Map.of("message", "Task delegate to " + delegateUser));
         }
 
@@ -118,4 +133,18 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
                                             ) {
         return this.taskRepo.getTasks(taskId, verifier, maker, status, pageable);
     }
+
+    public void archiveTaskInstance(Long taskId, String status) {
+        jdbcTemplate.execute(
+                "BEGIN HIMS.COMMON_FUNCTION.ARCHIVE_TASK_INSTANCE(?, ?); END;",
+                (CallableStatementCallback<Void>) cs -> {
+                    cs.setLong(1, taskId);
+                    cs.setString(2, status);
+                    cs.execute();
+                    return null;
+                }
+        );
+    };
+
+
 }

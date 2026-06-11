@@ -66,7 +66,7 @@ public class ApprovalTaskProcessor {
                 );
             }else{
                 // publish command listener on REJECTION and CORRECTION
-                commandListenerProcessor.publishCommandListener(commandName,baseCommand.getPayload(),action);
+                commandListenerProcessor.publishCommandListener(commandName,baseCommand,action);
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
                         "message", "Task Reject successfully: "
@@ -113,8 +113,8 @@ public class ApprovalTaskProcessor {
             if(isCommandValidate){
                 response = (CommandResponse<?>)  commandHandlerAnnotationProcessor.runCommand(command);
             }
-            // call command handler process for doing the operation
-            commandListenerProcessor.publishCommandListener(baseCommand.getClass().getSimpleName(), baseCommand.getPayload(),action);
+            // call command listener process for doing specific operation based on APPROVE, CORRECTION, REJECTION & DELEGATION
+            commandListenerProcessor.publishCommandListener(baseCommand.getClass().getSimpleName(), baseCommand,action);
 
             return response;
 

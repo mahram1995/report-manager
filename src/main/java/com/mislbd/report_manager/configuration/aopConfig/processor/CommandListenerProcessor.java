@@ -20,6 +20,7 @@ public class CommandListenerProcessor {
         this.applicationContext = applicationContext;
     }
 
+    //PostConstruct annotation scan in which classes use ApprovalFlowTaskListener and put all listener in a hasMap
     @PostConstruct
     public void init() {
         Map<String, Object> beans = applicationContext.getBeansWithAnnotation(ApprovalFlowTaskListener.class);
@@ -28,7 +29,7 @@ public class CommandListenerProcessor {
             operationHandlerMap.put(listener.operation(), bean);
         }
     }
-    public void publishCommandListener(String commandName, Object payload, String action ){
+    public void publishCommandListener(String commandName, Object command, String action ){
         Object handler = operationHandlerMap.get(commandName);
         if(handler!=null){
             for (Method method : handler.getClass().getDeclaredMethods()) {
@@ -39,10 +40,9 @@ public class CommandListenerProcessor {
                         if (method.getParameterCount() == 1) {
                             Class<?> paramType = method.getParameterTypes()[0];
 
-                            // Convert JSON string to the method's parameter type
-                           // Object deserializedPayload = objectMapper.readValue(payload, paramType);
 
-                            Object result = method.invoke(handler, payload);
+
+                            Object result = method.invoke(handler, command);
 
 
 

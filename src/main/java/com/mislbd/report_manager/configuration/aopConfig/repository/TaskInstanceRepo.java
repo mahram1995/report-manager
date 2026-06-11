@@ -28,4 +28,6 @@ public interface TaskInstanceRepo extends JpaRepository<TaskInstanceEntity, Long
                                       Pageable pageable);
 
     boolean existsByCommandNameAndDomainReference(String commandName, String reference);
+
+    TaskInstanceEntity findByCommandNameAndDomainReference(String commandName, String reference);
 }

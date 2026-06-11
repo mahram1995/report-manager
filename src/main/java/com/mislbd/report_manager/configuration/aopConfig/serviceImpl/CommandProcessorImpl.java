@@ -56,13 +56,18 @@ public class CommandProcessorImpl implements CommandProcessor {
     @Override
     public Object executeCommand(Object command) {
         String commandName = command.getClass().getSimpleName();
+
         String domainReference="";
 
-        // check is hasIdentity
+        // Check the is there any task is pending with the same identity
         if (command instanceof HasIdentity hasIdentity) {
              domainReference = hasIdentity.getIdentity();
+
             if(taskService.existsTaskByDomainReference(commandName,domainReference)){
-                throw new RuntimeException("Task already exists with same reference : " + domainReference);
+                TaskInstanceEntity task=taskService.getTaskByDomainRefAndCommandName(commandName,domainReference);
+                if(!task.getStatus().contains("CORRECTION")){
+                    throw new RuntimeException("Task already exists with same reference : " + domainReference);
+                }
             };
         }
 
@@ -119,10 +124,12 @@ public class CommandProcessorImpl implements CommandProcessor {
 
 
             if (commandEntity.getIsApprovalFlowRequired()) {
-                //save data to task table if approval flow is true
-                commandListenerProcessor.publishCommandListener(commandName,payload, CommandStatus.START.name());
 
-                return saveTaskInstance(commandName, initiator, commands, detailsUI, correctionUI, domainReference,verifier, taskId);
+                // call Command Listener to do specific task
+                commandListenerProcessor.publishCommandListener(commandName,command, CommandStatus.START.name());
+
+                //save data to task table if approval flow is true
+                return saveTaskInstance(commandName, initiator, commands, detailsUI, correctionUI, domainReference,verifier, taskId, terminalIp);
             } else {
                 // otherwise execute specific command for do operation
                 return commandAnnotationProcessor.runCommand(command);
@@ -134,13 +141,15 @@ public class CommandProcessorImpl implements CommandProcessor {
     private Object saveTaskInstance(String commandName, String user, Command command,
                                        String detailsUI, String correctionUI,
                                        String domainReference,
-                                       String verifier, Long taskId) {
+                                       String verifier, Long taskId,
+                                      String terminal) {
 
         TaskInstanceEntity task = new TaskInstanceEntity();
         if (taskId != null) {
             task.setTaskId(taskId);
         }
         task.setMaker(user);
+        task.setMakerTerminal(terminal);
         task.setActivityName(toReadableName(commandName));
         task.setCommandName(commandName);
         try {
@@ -155,12 +164,8 @@ public class CommandProcessorImpl implements CommandProcessor {
         task.setVerifier(verifier);
         task.setCreateDate(LocalDate.now());
         Long responseTaskId = taskService.saveTaskInstance(task);
-        if (taskId != null) {
-            return ResponseEntity.ok(Map.of(
-                    "status", "success",
-                    "message", "Operation correction sent for  verification. Task id: " + responseTaskId
-            ));
-        }
+
+        // base on  1001 code in web app, make a response-interceptor to track approval response and show the task id with successful message
         return new CommandResponse<>(Map.of(
                         "status", "success",
                         "code", 1001,
