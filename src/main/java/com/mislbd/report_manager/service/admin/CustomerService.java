@@ -1,4 +1,4 @@
-package com.mislbd.report_manager.service;
+package com.mislbd.report_manager.service.admin;
 
 import com.mislbd.report_manager.criteria.CustomerSearchCriteria;
 import com.mislbd.report_manager.entity.CustomerEntity;

@@ -59,7 +59,7 @@ public class AuthController {
     }
 
     @GetMapping(path = {"get-users"})
-    public Page<UserDomain> getUsers(
+    public Object  getUsers(
             @ParameterObject Pageable pageable,
             @ParameterObject UserSearchCriteria criteria
     ) {

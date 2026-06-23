@@ -2,7 +2,7 @@ package com.mislbd.report_manager.controller.admin;
 
 import com.mislbd.report_manager.criteria.CustomerSearchCriteria;
 import com.mislbd.report_manager.entity.CustomerEntity;
-import com.mislbd.report_manager.service.CustomerService;
+import com.mislbd.report_manager.service.admin.CustomerService;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

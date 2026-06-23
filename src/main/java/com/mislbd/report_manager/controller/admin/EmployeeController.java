@@ -3,7 +3,7 @@ package com.mislbd.report_manager.controller.admin;
 import com.mislbd.report_manager.domain.EmployeeDomain;
 import com.mislbd.report_manager.entity.Department;
 import com.mislbd.report_manager.entity.Employee;
-import com.mislbd.report_manager.service.EmployeeService;
+import com.mislbd.report_manager.service.admin.EmployeeService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;

@@ -91,14 +91,14 @@ public class CommandProcessorImpl implements CommandProcessor {
         String verifier = request.getHeader("verifier");
         String oldTaskId = request.getHeader("taskId");
         String terminalIp = request.getHeader("terminalIp");
-        String initiator = SecurityContextHolder.getContext().getAuthentication().getName();
+        String initiator = AuditorContextHolder.getCurrentUser();
 
         contextHolder.setCommand(commands);
         contextHolder.setClientIp(terminalIp);
 
 
         commands.setInitiatorTerminal(terminalIp);
-        commands.setInitiator(getCurrentUsername());
+        commands.setInitiator(initiator);
         commands.setVerifier(verifier);
         commands.setInitiatingTime(LocalDateTime.now());
         commands.setInitiatorClient(getUserAgent());
@@ -181,17 +181,9 @@ public class CommandProcessorImpl implements CommandProcessor {
     }
 
     public boolean isRightToExecuteCommand(String commandName){
-        String userName=getCurrentUsername();
+        String userName=AuditorContextHolder.getCurrentUser();
         // need to create a class for  of logic
         return true;
-    }
-
-    public String getCurrentUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            return authentication.getName(); // ✅ username from JWT
-        }
-        return null;
     }
 
 

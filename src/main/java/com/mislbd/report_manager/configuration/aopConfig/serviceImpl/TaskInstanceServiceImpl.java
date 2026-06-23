@@ -3,6 +3,7 @@ package com.mislbd.report_manager.configuration.aopConfig.serviceImpl;
 import com.mislbd.report_manager.configuration.aopConfig.entity.TaskInstanceEntity;
 import com.mislbd.report_manager.configuration.aopConfig.processor.ApprovalTaskProcessor;
 import com.mislbd.report_manager.configuration.aopConfig.repository.TaskInstanceRepo;
+import com.mislbd.report_manager.configuration.aopConfig.service.CommonService;
 import com.mislbd.report_manager.configuration.aopConfig.service.TaskInstanceService;
 import com.mislbd.report_manager.service.admin.AuthService;
 import jakarta.transaction.Transactional;
@@ -22,13 +23,14 @@ import java.util.Map;
 public class TaskInstanceServiceImpl implements TaskInstanceService {
     private final TaskInstanceRepo taskRepo;
     private  final ApprovalTaskProcessor processor;
-    private  AuthService authService;
+    private  final CommonService commonService;
     private final JdbcTemplate jdbcTemplate;
 
-    public TaskInstanceServiceImpl(TaskInstanceRepo taskRepo, ApprovalTaskProcessor processor, JdbcTemplate jdbcTemplate) {
+    public TaskInstanceServiceImpl(TaskInstanceRepo taskRepo, ApprovalTaskProcessor processor, CommonService commonService, JdbcTemplate jdbcTemplate) {
         this.taskRepo = taskRepo;
 
         this.processor = processor;
+        this.commonService = commonService;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -135,11 +137,15 @@ public class TaskInstanceServiceImpl implements TaskInstanceService {
     }
 
     public void archiveTaskInstance(Long taskId, String status) {
+
         jdbcTemplate.execute(
-                "BEGIN HIMS.COMMON_FUNCTION.ARCHIVE_TASK_INSTANCE(?, ?); END;",
+                "BEGIN HIMS.COMMON_FUNCTION.ARCHIVE_TASK_INSTANCE(?, ?,?,?,?); END;",
                 (CallableStatementCallback<Void>) cs -> {
                     cs.setLong(1, taskId);
                     cs.setString(2, status);
+                    cs.setString(3, commonService.getCurrentUsername());
+                    cs.setString(4, commonService.getUserAgent());
+                    cs.setString(5, commonService.getTerminal());
                     cs.execute();
                     return null;
                 }

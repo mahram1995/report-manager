@@ -23,4 +23,5 @@ public class UserSearchCriteria {
     private Long groupId;
     private Long userBranchId;
     private String isLogin;
+    private boolean asPage;
 }

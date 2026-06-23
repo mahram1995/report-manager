@@ -187,12 +187,22 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Page<UserDomain> getUsers(UserSearchCriteria criteria, Pageable pageable) {
+    public Object  getUsers(UserSearchCriteria criteria, Pageable pageable) {
         Specification<UserEntity> spec = UserSpecification.getUserSpecification(criteria);
 
-        return userRepo.findAll(spec, pageable)
-                .map(UserMapper::entityToDomain); // convert each entity to domain
+
+        if (criteria.isAsPage()) {
+            return userRepo.findAll(spec, pageable)
+                    .map(UserMapper::entityToDomain);
+        }
+
+        return userRepo.findAll(spec)
+                .stream()
+                .map(UserMapper::entityToDomain)
+                .toList();
     }
+
+
 
     @Override
     public boolean existByUserName(String userName) {

@@ -1,19 +1,9 @@
-package com.mislbd.report_manager.entity;
+package com.mislbd.report_manager.domain.admin;
 
-
-import jakarta.persistence.*;
 import lombok.Data;
 
-
 @Data
-@Entity(name = "branch")
-public class BranchEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "branch_id_generator")
-    @SequenceGenerator(
-            name = "branch_id_generator",
-            allocationSize = 1,
-            sequenceName = "branch_sequence")
+public class BranchDomain {
     private int id;
     private String name;
     private String address;
@@ -38,9 +28,4 @@ public class BranchEntity {
     private String houseNo;
     private String roadNo;
     private String villageName;
-    public BranchEntity()  {
-    }
-
-
 }
-

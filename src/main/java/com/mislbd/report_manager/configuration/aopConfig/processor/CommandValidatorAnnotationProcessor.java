@@ -41,7 +41,13 @@ public class CommandValidatorAnnotationProcessor {
                 .filter(e -> e.getKey().isAssignableFrom(command.getClass()))
                 .map(Map.Entry::getValue)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("No validator found for: " + command.getClass().getSimpleName()));
+                .orElse(null);
+                //.orElseThrow(() -> new RuntimeException("No validator found for: " + command.getClass().getSimpleName()));
+
+        // No validator found, skip validation
+        if (handler == null) {
+            return true;
+        }
 
         try {
             Object proxyBean = context.getBean(handler.bean.getClass()); // Spring proxy
