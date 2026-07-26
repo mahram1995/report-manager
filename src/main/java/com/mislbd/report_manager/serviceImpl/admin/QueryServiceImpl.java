@@ -25,13 +25,45 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public List<Map<String, Object>> executeQuery(String sql, Map<String, Object> params) {
 
+        if (sql == null || sql.trim().isEmpty()) {
+            throw new RuntimeException("select * from  AIBLFE030426.TF_IMPORT_LC_ISSUE order by transmit_lc_id desc FETCH FIRST 2000 ROWS ONLY");
+        }
+
+        String normalizedSql = sql.trim().toLowerCase();
+
+        // Allow only SELECT
+        if (!isSelectQuery(sql)) {
+            throw new RuntimeException(
+                    "Only SELECT queries are permitted"
+            );
+        }
+
+        if (sql.contains(";")) {
+            throw new RuntimeException(
+                    "Multiple SQL statements are not allowed"
+            );
+        }
+
         DatabaseConfigEntity db = getDatabase(101L)
                 .orElseThrow(() -> new RuntimeException("Database not found"));
 
         NamedParameterJdbcTemplate jdbc = create(db);
-        String query="select * from  AIBLFE030426.TF_IMPORT_LC_ISSUE order by transmit_lc_id desc FETCH FIRST 2000 ROWS ONLY";
-         return jdbc.queryForList(query, params);//  jdbcTemplate.queryForList(sqls, params);
+
+        return jdbc.queryForList(sql, params);
     }
+
+    private boolean isSelectQuery(String sql) {
+
+        String query = sql
+                .replaceAll("--.*", "")
+                .replaceAll("/\\*.*?\\*/", "")
+                .trim()
+                .toLowerCase();
+
+        return query.startsWith("select")
+                || query.startsWith("with");
+    }
+
 
 
     public Optional<DatabaseConfigEntity> getDatabase(Long id) {
