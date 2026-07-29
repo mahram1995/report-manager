@@ -1,5 +1,6 @@
 package com.mislbd.report_manager.controller.admin;
 
+import com.mislbd.report_manager.domain.admin.QueryResultDomain;
 import com.mislbd.report_manager.service.admin.QueryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,6 +28,15 @@ public class QueryExecutorController {
                 request.getParams()
         );
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/execute-with-column-type")
+    public QueryResultDomain executeQueryWithDataType(@RequestBody QueryRequest request) {
+        QueryResultDomain  result = queryService.executeQueryWithDataType(
+                request.getSql(),
+                request.getParams()
+        );
+        return ResponseEntity.ok(result).getBody();
     }
 }
 
