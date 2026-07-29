@@ -1,5 +1,7 @@
 package com.mislbd.report_manager.serviceImpl.admin;
 
+import com.mislbd.report_manager.domain.admin.ColumnInfoDomain;
+import com.mislbd.report_manager.domain.admin.QueryResultDomain;
 import com.mislbd.report_manager.entity.admin.DatabaseConfigEntity;
 import com.mislbd.report_manager.repository.admin.DatabaseConfigRepository;
 import com.mislbd.report_manager.service.admin.QueryService;
@@ -8,9 +10,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.sql.ResultSetMetaData;
+import java.util.*;
 
 @Component
 public class QueryServiceImpl implements QueryService {
@@ -50,6 +51,60 @@ public class QueryServiceImpl implements QueryService {
         NamedParameterJdbcTemplate jdbc = create(db);
 
         return jdbc.queryForList(sql, params);
+    }
+
+    @Override
+    public QueryResultDomain executeQueryAdvance(String sql, Map<String, Object> params) {
+        DatabaseConfigEntity db = getDatabase(101L)
+                .orElseThrow(() -> new RuntimeException("Database not found"));
+        NamedParameterJdbcTemplate jdbc = create(db);
+
+        // Allow only SELECT
+        if (!isSelectQuery(sql)) {
+            throw new RuntimeException(
+                    "Only SELECT queries are permitted"
+            );
+        }
+
+        if (sql.contains(";")) {
+            throw new RuntimeException(
+                    "Multiple SQL statements are not allowed"
+            );
+        }
+
+        return jdbc.query(sql, params, rs -> {
+
+            ResultSetMetaData meta = rs.getMetaData();
+            int count = meta.getColumnCount();
+
+            List<ColumnInfoDomain> columns = new ArrayList<>();
+
+            for (int i = 1; i <= count; i++) {
+                ColumnInfoDomain c = new ColumnInfoDomain();
+                c.setName(meta.getColumnLabel(i));
+                c.setSqlType(meta.getColumnTypeName(i));   // VARCHAR, DECIMAL, DATETIME...
+                c.setJdbcType(meta.getColumnType(i));      // java.sql.Types.INTEGER...
+                columns.add(c);
+            }
+
+            List<Map<String, Object>> rows = new ArrayList<>();
+
+            while (rs.next()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+
+                for (int i = 1; i <= count; i++) {
+                    row.put(meta.getColumnLabel(i), rs.getObject(i));
+                }
+
+                rows.add(row);
+            }
+
+            QueryResultDomain result = new QueryResultDomain();
+            result.setColumns(columns);
+            result.setRows(rows);
+
+            return result;
+        });
     }
 
     private boolean isSelectQuery(String sql) {
