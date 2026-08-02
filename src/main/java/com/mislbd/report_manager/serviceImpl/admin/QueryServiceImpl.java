@@ -15,12 +15,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Component
 public class QueryServiceImpl implements QueryService {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final DatabaseConfigRepository databaseConfigRepository;
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+    private static final DateTimeFormatter TIME_FORMAT =
+            DateTimeFormatter.ofPattern("HH:mm:ss");
+
+    private static final DateTimeFormatter DATE_TIME_FORMAT =
+            DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     public QueryServiceImpl(NamedParameterJdbcTemplate jdbcTemplate, DatabaseConfigRepository databaseConfigRepository) {
         this.jdbcTemplate = jdbcTemplate;
@@ -127,19 +136,23 @@ public class QueryServiceImpl implements QueryService {
 
                         case Types.DATE -> {
                             var date = rs.getDate(i);
-                            value = date == null ? null : date.toLocalDate();
+                            value = date == null
+                                    ? null
+                                    : date.toLocalDate().format(DATE_FORMAT);
                         }
 
                         case Types.TIME -> {
                             var time = rs.getTime(i);
-                            value = time == null ? null : time.toLocalTime();
+                            value = time == null
+                                    ? null
+                                    : time.toLocalTime().format(TIME_FORMAT);
                         }
 
                         case Types.TIMESTAMP, Types.TIMESTAMP_WITH_TIMEZONE -> {
                             Timestamp ts = rs.getTimestamp(i);
                             value = ts == null
                                     ? null
-                                    : ts.toInstant().atZone(ZoneId.systemDefault()).toOffsetDateTime();
+                                    : ts.toLocalDateTime().format(DATE_TIME_FORMAT);
                         }
 
                         default -> {
