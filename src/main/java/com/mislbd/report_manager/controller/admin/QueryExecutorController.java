@@ -2,12 +2,12 @@ package com.mislbd.report_manager.controller.admin;
 
 import com.mislbd.report_manager.domain.admin.QueryResultDomain;
 import com.mislbd.report_manager.service.admin.QueryService;
+import lombok.Data;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,24 +31,49 @@ public class QueryExecutorController {
     }
 
     @PostMapping("/execute-with-column-type")
-    public QueryResultDomain executeQueryAdvance(@RequestBody QueryRequest request) {
-        QueryResultDomain result = queryService.executeQueryAdvance(
+    public QueryResultDomain executeQueryAdvance(
+            @RequestBody QueryRequest request) {
+
+        return queryService.executeQueryAdvance(
                 request.getSql(),
-                request.getParams()
+                request.getParams(),
+                request.getAsPage(),
+                request.getPage(),
+                request.getSize()
         );
-        return ResponseEntity.ok(result).getBody();
+    }
+
+    @PostMapping("/execute-stream")
+    public StreamingResponseBody executeStream(
+            @RequestBody QueryRequest request) {
+
+
+        return outputStream -> {
+
+            queryService.executeQueryStream(
+                    request.getSql(),
+                    new HashMap<>(),
+                    outputStream
+            );
+
+        };
     }
 }
 
 
 // DTO to hold the incoming request
+@Data
 class QueryRequest {
     private String sql;
     private Map<String, Object> params;
 
-    // Getters and Setters
-    public String getSql() { return sql; }
-    public void setSql(String sql) { this.sql = sql; }
-    public Map<String, Object> getParams() { return params; }
-    public void setParams(Map<String, Object> params) { this.params = params; }
+    // 0-based page number
+    private Integer page = 0;
+    private Integer asPage=1 ;
+
+
+    // Default 50 rows per page
+    private Integer size = 50;
 }
+
+
