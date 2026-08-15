@@ -7,7 +7,12 @@ import com.mislbd.report_manager.domain.admin.QueryResultDomain;
 import com.mislbd.report_manager.entity.admin.DatabaseConfigEntity;
 import com.mislbd.report_manager.repository.admin.DatabaseConfigRepository;
 import com.mislbd.report_manager.service.admin.QueryService;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -70,6 +75,20 @@ public class QueryServiceImpl implements QueryService {
         return jdbc.queryForList(sql, params);
     }
 
+
+    void validatedSql(String sqlString){
+        if (!isSelectQuery(sqlString)) {
+            throw new RuntimeException("Only SELECT queries are permitted");
+        }
+
+        // Prevent multiple SQL statements
+        // =========================================================
+
+        if (sqlString.contains(";")) {
+            throw new RuntimeException("Multiple SQL statements are not allowed");
+        }
+    }
+
     @Override
     public QueryResultDomain executeQueryAdvance(
             String sql,
@@ -78,9 +97,7 @@ public class QueryServiceImpl implements QueryService {
             Integer page,
             Integer size) {
 
-        DatabaseConfigEntity db = getDatabase(101L)
-                .orElseThrow(() -> new RuntimeException("Database not found"));
-
+        DatabaseConfigEntity db = getDataBase();
         NamedParameterJdbcTemplate jdbc = create(db);
 
         // =========================================================
@@ -88,13 +105,8 @@ public class QueryServiceImpl implements QueryService {
         // =========================================================
 
         int pageNumber = (page == null || page < 0) ? 0 : page;
-
         int pageSize = (size == null || size <= 0) ? 50 : size;
 
-        // Prevent extremely large requests
-        if (pageSize > 1000) {
-            pageSize = 1000;
-        }
 
         // IMPORTANT:
         // Calculate offset AFTER pageSize has been assigned
@@ -105,335 +117,279 @@ public class QueryServiceImpl implements QueryService {
         final int finalPageSize = pageSize;
         final long finalOffset = offset;
 
-
-        // =========================================================
         // Validate SELECT query
-        // =========================================================
-
-        if (!isSelectQuery(sql)) {
-            throw new RuntimeException("Only SELECT queries are permitted");
-        }
-
-
-        // =========================================================
-        // Prevent multiple SQL statements
-        // =========================================================
-
-        if (sql.contains(";")) {
-            throw new RuntimeException(
-                    "Multiple SQL statements are not allowed");
-        }
-
-
-        // =========================================================
-        // Clean SQL
-        // =========================================================
+        validatedSql(sql);
 
         String originalSql = sql.trim();
-
         /*
          * Remove trailing semicolon if necessary.
          * Multiple statements are already rejected above.
          */
         if (originalSql.endsWith(";")) {
-            originalSql = originalSql.substring(
-                    0,
-                    originalSql.length() - 1
-            );
+            originalSql = originalSql.substring(0, originalSql.length() - 1);
         }
 
 
-        // =========================================================
-        // Count total rows
-        // =========================================================
-
-        String countSql =
-                "SELECT COUNT(*) FROM (" +
-                        originalSql +
-                        ")";
-
-        Long totalRows = jdbc.queryForObject(
-                countSql,
-                params,
-                Long.class
-        );
-
-        if (totalRows == null) {
-            totalRows = 0L;
-        }
-
-        final long finalTotalRows = totalRows;
-
-
-        // =========================================================
         // Pagination SQL
-        // =========================================================
-        String  finalQuery;
-        if(isPage==1){
-             finalQuery =
-                    "SELECT * FROM (" +
-                            originalSql +
-                            ") " +
-                            "OFFSET " + finalOffset +
-                            " ROWS FETCH NEXT " +
-                            finalPageSize +
-                            " ROWS ONLY";
-        }else{
-             finalQuery = originalSql;
+        String finalQuery;
+        if (isPage == 1) {
+            finalQuery = "SELECT * FROM (" + originalSql + ") " +
+                    "OFFSET " + finalOffset +
+                    " ROWS FETCH NEXT " + finalPageSize + " ROWS ONLY";
+        } else {
+            finalQuery = originalSql;
         }
 
         // =========================================================
         // Execute paginated query
         // =========================================================
 
-        return jdbc.query(
-                finalQuery,
-                params,
-                rs -> {
+        return jdbc.query(finalQuery, params, rs -> {
 
                     ResultSetMetaData meta = rs.getMetaData();
-
                     int columnCount = meta.getColumnCount();
-
 
                     // =====================================================
                     // Column metadata
                     // =====================================================
-
                     List<ColumnInfoDomain> columns =
                             new ArrayList<>();
 
                     for (int i = 1; i <= columnCount; i++) {
-
-                        ColumnInfoDomain column =
-                                new ColumnInfoDomain();
-
-                        column.setName(
-                                meta.getColumnLabel(i)
-                        );
-
-                        column.setSqlType(
-                                meta.getColumnTypeName(i)
-                        );
-
-                        column.setJdbcType(
-                                meta.getColumnType(i)
-                        );
-
+                        ColumnInfoDomain column = new ColumnInfoDomain();
+                        column.setName(meta.getColumnLabel(i));
+                        column.setSqlType(meta.getColumnTypeName(i));
+                        column.setJdbcType(meta.getColumnType(i));
                         columns.add(column);
                     }
-
 
                     // =====================================================
                     // Rows
                     // =====================================================
 
-                    List<Map<String, Object>> rows =
-                            new ArrayList<>();
-
+                    List<Map<String, Object>> rows = new ArrayList<>();
 
                     while (rs.next()) {
-
-                        Map<String, Object> row =
-                                new LinkedHashMap<>();
-
+                        Map<String, Object> row = new LinkedHashMap<>();
 
                         for (int i = 1; i <= columnCount; i++) {
-
                             Object value;
-
-                            int sqlType =
-                                    meta.getColumnType(i);
-
+                            int sqlType = meta.getColumnType(i);
 
                             // =============================================
                             // BLOB
                             // =============================================
 
                             switch (sqlType) {
-
                                 case Types.BLOB -> {
-
-                                    Blob blob =
-                                            rs.getBlob(i);
-
-                                    if (blob == null) {
-
-                                        value = null;
-
-                                    } else {
-
-                                        byte[] bytes =
-                                                blob.getBytes(
-                                                        1,
-                                                        (int) blob.length()
-                                                );
-
-                                        value =
-                                                Base64
-                                                        .getEncoder()
-                                                        .encodeToString(bytes);
-                                    }
+                                    value = null;
                                 }
 
-
-                                // =============================================
                                 // CLOB
-                                // =============================================
-
                                 case Types.CLOB -> {
-
-                                    Clob clob =
-                                            rs.getClob(i);
-
-                                    value =
-                                            clob == null
-                                                    ? null
-                                                    : clob.getSubString(
-                                                    1,
-                                                    (int) clob.length()
-                                            );
+                                    Clob clob = rs.getClob(i);
+                                    value = clob == null ? null : clob.getSubString(1, (int) clob.length());
                                 }
 
-
-                                // =============================================
                                 // DATE
-                                // =============================================
-
                                 case Types.DATE -> {
-
-                                    var date =
-                                            rs.getDate(i);
-
-                                    value =
-                                            date == null
-                                                    ? null
-                                                    : date
-                                                    .toLocalDate()
-                                                    .format(DATE_FORMAT);
+                                    var date = rs.getDate(i);
+                                    value = date == null ? null : date.toLocalDate().format(DATE_FORMAT);
                                 }
 
-
-                                // =============================================
                                 // TIME
-                                // =============================================
-
                                 case Types.TIME -> {
-
-                                    var time =
-                                            rs.getTime(i);
-
-                                    value =
-                                            time == null
-                                                    ? null
-                                                    : time
-                                                    .toLocalTime()
-                                                    .format(TIME_FORMAT);
+                                    var time = rs.getTime(i);
+                                    value = time == null ? null : time.toLocalTime().format(TIME_FORMAT);
                                 }
 
-
-                                // =============================================
                                 // TIMESTAMP
-                                // =============================================
-
-                                case Types.TIMESTAMP,
-                                        Types.TIMESTAMP_WITH_TIMEZONE -> {
-
-                                    Timestamp ts =
-                                            rs.getTimestamp(i);
-
-                                    value =
-                                            ts == null
-                                                    ? null
-                                                    : ts
-                                                    .toLocalDateTime()
-                                                    .format(
-                                                            DATE_TIME_FORMAT
-                                                    );
+                                case Types.TIMESTAMP, Types.TIMESTAMP_WITH_TIMEZONE -> {
+                                    Timestamp ts = rs.getTimestamp(i);
+                                    value = ts == null ? null : ts.toLocalDateTime().format(DATE_TIME_FORMAT);
                                 }
 
-
-                                // =============================================
                                 // DEFAULT
-                                // =============================================
-
                                 default -> {
-
-                                    Object obj =
-                                            rs.getObject(i);
-
-                                    if (obj instanceof InputStream inputStream) {
-
-                                        ByteArrayOutputStream baos =
-                                                new ByteArrayOutputStream();
-
-                                        try {
-
-                                            inputStream.transferTo(
-                                                    baos
-                                            );
-
-                                        } catch (IOException e) {
-
-                                            throw new RuntimeException(e);
-                                        }
-
-                                        value =
-                                                Base64
-                                                        .getEncoder()
-                                                        .encodeToString(
-                                                                baos.toByteArray()
-                                                        );
-
-                                    } else {
-
-                                        value = obj;
-                                    }
+                                    value = rs.getObject(i);
                                 }
                             }
-
-
-                            row.put(
-                                    meta.getColumnLabel(i),
-                                    value
-                            );
+                            row.put(meta.getColumnLabel(i), value);
                         }
-
-
                         rows.add(row);
                     }
-
 
                     // =====================================================
                     // Build result
                     // =====================================================
-
-                    QueryResultDomain result =
-                            new QueryResultDomain();
-
+                    QueryResultDomain result = new QueryResultDomain();
                     result.setColumns(columns);
-
                     result.setRows(rows);
-
-                    result.setTotalRows(finalTotalRows);
-
                     result.setPage(finalPageNumber);
-
                     result.setSize(finalPageSize);
-
-                    result.setTotalPages(
-                            finalPageSize == 0
-                                    ? 0
-                                    : (int) Math.ceil(
-                                    (double) finalTotalRows
-                                            / finalPageSize
-                            )
-                    );
-
-
                     return result;
                 }
         );
+    }
+
+    @Override
+    public QueryResultDomain getTotalRecords(String sql, Map<String, Object> params) {
+        DatabaseConfigEntity db = getDataBase();
+        NamedParameterJdbcTemplate jdbc = create(db);
+        String countSql = "SELECT COUNT(*) FROM (" + sql + ")";
+        Long totalRows = 0l;
+        try {
+                totalRows = jdbc.queryForObject(countSql, params, Long.class);
+
+        } catch (BadSqlGrammarException e) {
+            throw new RuntimeException(e.getCause());
+        }
+        QueryResultDomain result = new QueryResultDomain();
+        result.setTotalRows(totalRows);
+        return  result;
+    }
+
+    @Override
+    public byte[] exportQueryToExcel(String sql, Map<String, Object> params) {
+
+        DatabaseConfigEntity db = getDatabase(101L).orElseThrow(() -> new RuntimeException("Database not found"));
+        NamedParameterJdbcTemplate jdbc = create(db);
+
+        // Validate SELECT
+        if (!isSelectQuery(sql)) {
+            throw new RuntimeException("Only SELECT queries are permitted");
+        }
+
+        // Prevent multiple statements
+        if (sql.contains(";")) {
+            throw new RuntimeException("Multiple SQL statements are not allowed");
+        }
+
+        String originalSql = sql.trim();
+
+        if (originalSql.endsWith(";")) {
+            originalSql = originalSql.substring(0, originalSql.length() - 1
+            );
+        }
+
+        try (
+                SXSSFWorkbook workbook = new SXSSFWorkbook(500);
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+        ) {
+
+            workbook.setCompressTempFiles(true);
+            Sheet sheet = workbook.createSheet("Data");
+            jdbc.query(
+                    originalSql,
+                    params,
+                    rs -> {
+                        ResultSetMetaData meta = rs.getMetaData();
+                        int columnCount = meta.getColumnCount();
+
+                        // =========================================
+                        // Header
+                        // =========================================
+
+                        Row headerRow = sheet.createRow(0);
+
+                        for (int i = 1;
+                             i <= columnCount;
+                             i++) {
+
+                            Cell cell = headerRow.createCell(i - 1);
+                            cell.setCellValue(meta.getColumnLabel(i)
+                            );
+                        }
+
+                        // =========================================
+                        // Data
+                        // =========================================
+
+                        int rowNumber = 1;
+                        while (rs.next()) {
+                            Row excelRow = sheet.createRow(rowNumber++);
+
+                            for (int i = 1;
+                                 i <= columnCount;
+                                 i++) {
+
+                                Object value = getExcelValue(rs, meta, i);
+                                Cell cell = excelRow.createCell(i - 1);
+                                setCellValue(cell, value);
+                            }
+                        }
+                    }
+            );
+
+            workbook.write(outputStream);
+            workbook.dispose();
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Excel export failed: " + e.getCause().getMessage().toString());
+        }
+    }
+
+    private Object getExcelValue(
+            ResultSet rs,
+            ResultSetMetaData meta,
+            int index) throws SQLException {
+
+        int sqlType = meta.getColumnType(index);
+
+        switch (sqlType) {
+            case Types.BLOB:
+                return null;
+            case Types.CLOB:
+                Clob clob = rs.getClob(index);
+                if (clob == null) {
+                    return null;
+                }
+
+                long length = clob.length();
+                if (length > 250) {
+                    clob.getSubString(1, 250);
+                }
+
+                return clob.getSubString(1, 250);
+
+            case Types.DATE:
+                java.sql.Date date = rs.getDate(index);
+                return date;
+            case Types.TIME:
+                Time time = rs.getTime(index);
+                return time;
+            case Types.TIMESTAMP:
+            case Types.TIMESTAMP_WITH_TIMEZONE:
+
+                Timestamp timestamp = rs.getTimestamp(index);
+                return timestamp;
+            default:
+                return rs.getObject(index);
+        }
+    }
+
+    private void setCellValue(
+            Cell cell,
+            Object value) {
+
+        if (value == null) {
+            cell.setBlank();
+            return;
+        }
+
+        if (value instanceof Number number) {
+            cell.setCellValue(number.doubleValue());
+        } else if (value instanceof Boolean bool) {
+            cell.setCellValue(bool);
+        } else if (value instanceof java.sql.Date date) {
+            cell.setCellValue(date);
+        } else if (value instanceof Timestamp timestamp) {
+            cell.setCellValue(timestamp);
+        } else if (value instanceof Time time) {
+            cell.setCellValue(time.toString());
+        } else {
+            cell.setCellValue(value.toString());
+        }
     }
 
     @Override
@@ -692,4 +648,8 @@ public class QueryServiceImpl implements QueryService {
 
         return new NamedParameterJdbcTemplate(ds);
     }
+
+    DatabaseConfigEntity getDataBase(){
+        return getDatabase(101L).orElseThrow(() -> new RuntimeException("Database not found"));
+    };
 }

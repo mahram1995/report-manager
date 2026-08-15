@@ -3,6 +3,8 @@ package com.mislbd.report_manager.controller.admin;
 import com.mislbd.report_manager.domain.admin.QueryResultDomain;
 import com.mislbd.report_manager.service.admin.QueryService;
 import lombok.Data;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -31,8 +33,7 @@ public class QueryExecutorController {
     }
 
     @PostMapping("/execute-with-column-type")
-    public QueryResultDomain executeQueryAdvance(
-            @RequestBody QueryRequest request) {
+    public QueryResultDomain executeQueryAdvance(@RequestBody QueryRequest request) {
 
         return queryService.executeQueryAdvance(
                 request.getSql(),
@@ -41,6 +42,11 @@ public class QueryExecutorController {
                 request.getPage(),
                 request.getSize()
         );
+    }
+
+    @PostMapping("/get-total-records")
+    public QueryResultDomain getTotalRecords(@RequestBody QueryRequest request) {
+        return queryService.getTotalRecords(request.getSql(), request.getParams());
     }
 
     @PostMapping("/execute-stream")
@@ -57,6 +63,21 @@ public class QueryExecutorController {
             );
 
         };
+    }
+
+    @PostMapping(value = "/export-excel", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    public ResponseEntity<byte[]> exportExcel(@RequestBody QueryRequest request) {
+        byte[] excelFile =
+                queryService.exportQueryToExcel(
+                        request.getSql(),
+                        request.getParams()
+                );
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"query-result.xlsx\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .contentLength(excelFile.length)
+                .body(excelFile);
     }
 }
 
