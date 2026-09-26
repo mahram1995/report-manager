@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "reportGroup")
-public class ReportGroupEntity {
+public class ReportGroupEntity  {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "reportGroup_seq_gen")

@@ -43,6 +43,15 @@ dependencies {
 
 	implementation 'org.apache.poi:poi-ooxml:5.4.1'
 
+	// for jasper report
+	dependencies {implementation 'net.sf.jasperreports:jasperreports:6.11.0'}
+	dependencies {implementation 'net.sf.jasperreports:jasperreports-functions:6.11.0'}
+	implementation 'org.apache.poi:poi:4.1.1'
+	implementation 'org.apache.poi:poi-ooxml:4.1.1'
+	implementation 'com.lowagie:itext:2.1.7'
+	implementation files('libs/jasper-1.0-SNAPSHOT.jar')
+
+
 
 }
 
