@@ -7,6 +7,7 @@ import java.util.Map;
 @Data
 public class JasperReportRequestDomain {
     private  String jasperFileName;
+    private  String reportName;
     private String reportFormat;
     private Map<String, Object> parameters;
 }

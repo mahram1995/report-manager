@@ -1,50 +1,47 @@
 package com.mislbd.report_manager.serviceImpl.admin;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mislbd.report_manager.configuration.aopConfig.service.CommonService;
 import com.mislbd.report_manager.domain.admin.JasperReportDomain;
 import com.mislbd.report_manager.domain.admin.JasperReportRequestDomain;
 import com.mislbd.report_manager.entity.admin.DatabaseConfigEntity;
 import com.mislbd.report_manager.entity.admin.JasperReportEntity;
+import com.mislbd.report_manager.entity.admin.JasperReportAuditLogEntity;
 import com.mislbd.report_manager.entity.admin.JasperReportHistEntity;
 import com.mislbd.report_manager.exception.ReportExecutionException;
 import com.mislbd.report_manager.mapper.admin.JasperReportMapper;
 import com.mislbd.report_manager.repository.admin.DatabaseConfigRepository;
 import com.mislbd.report_manager.repository.admin.JasperReportHistRepository;
 import com.mislbd.report_manager.repository.admin.JasperReportRepository;
+import com.mislbd.report_manager.service.admin.JasperReportAuditLogService;
 import com.mislbd.report_manager.service.admin.JasperReportService;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.transaction.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import net.sf.jasperreports.engine.*;
-import net.sf.jasperreports.engine.design.JasperDesign;
 import net.sf.jasperreports.engine.export.HtmlExporter;
 import net.sf.jasperreports.engine.export.JRCsvExporter;
 import net.sf.jasperreports.engine.export.JRXlsExporter;
 import net.sf.jasperreports.engine.export.ooxml.JRDocxExporter;
 import net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter;
-import net.sf.jasperreports.engine.util.JRLoader;
-import net.sf.jasperreports.engine.xml.JRXmlLoader;
 import net.sf.jasperreports.export.SimpleExporterInput;
 import net.sf.jasperreports.export.SimpleHtmlExporterOutput;
 import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
 import net.sf.jasperreports.export.SimpleWriterExporterOutput;
-import org.springframework.http.HttpHeaders;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ResourceUtils;
 
 import javax.sql.DataSource;
+import javax.sql.rowset.serial.SerialClob;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,9 +49,13 @@ import java.util.stream.Collectors;
 public class JasperReportServiceImpl implements JasperReportService {
 
     private final JasperReportRepository jasperReportRepository;
-    private  final JasperReportHistRepository histRepository;
+    private final JasperReportAuditLogService jasperReportErrorLogService;
+    private final JasperReportHistRepository histRepository;
     private final JasperReportMapper jasperReportMapper;
-    private  final DatabaseConfigRepository databaseConfigRepository;
+    private final CommonService commonService;
+    private final DatabaseConfigRepository databaseConfigRepository;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -78,11 +79,11 @@ public class JasperReportServiceImpl implements JasperReportService {
 
         if (jasperReportRepository.existsByReportFileName(domain.getReportFileName())) {
 
-            Optional<JasperReportEntity> entity=jasperReportRepository.findByReportFileName(domain.getReportFileName());
-            JasperReportHistEntity hisEntity= jasperReportMapper.EntityToHistEntity(entity);
+            Optional<JasperReportEntity> entity = jasperReportRepository.findByReportFileName(domain.getReportFileName());
+            JasperReportHistEntity hisEntity = jasperReportMapper.EntityToHistEntity(entity);
 
             histRepository.save(hisEntity);
-            return   update(entity.get().getId(), domain);
+            return update(entity.get().getId(), domain);
         }
 
         JasperReportEntity entity = jasperReportMapper.domainToEntity(domain);
@@ -158,12 +159,13 @@ public class JasperReportServiceImpl implements JasperReportService {
     }
 
     @Override
-    @Transactional()
-    public     ResponseEntity<byte[]> runReport(JasperReportRequestDomain request) throws IOException, JRException {
-        String reportFileName=request.getJasperFileName();
+    public ResponseEntity<byte[]> runReport(JasperReportRequestDomain request) throws IOException, JRException, SQLException {
+        String reportFileName = request.getJasperFileName();
         Optional<JasperReportEntity> entity = jasperReportRepository.findByReportFileName(reportFileName);
 
-        if(entity.isEmpty()){
+        long auditLogId;
+
+        if (entity.isEmpty()) {
             throw new RuntimeException("File not Found: " + reportFileName);
         }
 
@@ -178,23 +180,24 @@ public class JasperReportServiceImpl implements JasperReportService {
         byte[] reportBytes = entity.get().getReportContent();
 
 
-
-
         // Get database connection
         DatabaseConfigEntity db = getDatabase(101L).orElseThrow(() -> new RuntimeException("Database not found"));
         DataSource dataSource = createDataSource(db);
         // Get parameters
         Map<String, Object> reportParameters = request.getParameters() != null
-                        ? new HashMap<>(request.getParameters())
-                        : new HashMap<>();
+                ? new HashMap<>(request.getParameters())
+                : new HashMap<>();
 
 
         try (Connection connection = dataSource.getConnection()) {
 
-           // String filePath = "C:\\Users\\User\\Downloads\\MITS_20028_CL_REPORT_OLD\\MITS_20028_CL_REPORT_OLD\\CL1_TOPSHEET_OLD.jasper";
+            // entry the initial log
+            auditLogId = saveAuditData(request, "PROCESSING", null, "",null);
+
+            // String filePath = "C:\\Users\\User\\Downloads\\MITS_20028_CL_REPORT_OLD\\MITS_20028_CL_REPORT_OLD\\CL1_TOPSHEET_OLD.jasper";
             //File file = new File(filePath);
-           //JasperReport jasperReport=JasperCompileManager.compileReport(filePath);
-           // JasperReport jasperReport =(JasperReport) JRLoader.loadObject(file);
+            //JasperReport jasperReport=JasperCompileManager.compileReport(filePath);
+            // JasperReport jasperReport =(JasperReport) JRLoader.loadObject(file);
 
 
             JasperReport jasperReport = JasperCompileManager.compileReport(new ByteArrayInputStream(reportBytes));
@@ -210,6 +213,8 @@ public class JasperReportServiceImpl implements JasperReportService {
                 exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(outputStream));
 
                 exporter.exportReport();
+                // save audit log
+                saveAuditData(request, "SUCCESS", outputStream.toByteArray(), "",auditLogId);
 
                 return ResponseEntity.ok()
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -227,10 +232,12 @@ public class JasperReportServiceImpl implements JasperReportService {
                 exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(outputStream));
 
                 exporter.exportReport();
+                // save audit log
+                saveAuditData(request, "SUCCESS", outputStream.toByteArray(), "",auditLogId);
 
                 return ResponseEntity.ok().contentType(MediaType.parseMediaType(
-                                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                                )).body(outputStream.toByteArray());
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )).body(outputStream.toByteArray());
             }
 
             if ("docs".equalsIgnoreCase(request.getReportFormat())) {
@@ -244,10 +251,12 @@ public class JasperReportServiceImpl implements JasperReportService {
                 exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(outputStream));
 
                 exporter.exportReport();
+                // save audit log
+                saveAuditData(request, "SUCCESS", outputStream.toByteArray(), "",auditLogId);
 
                 return ResponseEntity.ok().contentType(MediaType.parseMediaType(
-                                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                                )).body(outputStream.toByteArray());
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )).body(outputStream.toByteArray());
             }
             if ("csv".equalsIgnoreCase(request.getReportFormat())) {
 
@@ -268,6 +277,8 @@ public class JasperReportServiceImpl implements JasperReportService {
                 );
 
                 exporter.exportReport();
+                // save audit log
+                saveAuditData(request, "SUCCESS", outputStream.toByteArray(), "",auditLogId);
 
                 return ResponseEntity.ok()
                         .contentType(
@@ -292,6 +303,10 @@ public class JasperReportServiceImpl implements JasperReportService {
 
                 exporter.exportReport();
 
+
+                // save audit log
+                saveAuditData(request, "SUCCESS", outputStream.toByteArray(), "",auditLogId);
+
                 return ResponseEntity.ok()
                         .contentType(
                                 MediaType.TEXT_HTML
@@ -299,22 +314,24 @@ public class JasperReportServiceImpl implements JasperReportService {
                         .body(outputStream.toByteArray());
             }
 
-            return ResponseEntity.ok(JasperExportManager.exportReportToPdf(jasperPrint));
+            byte[] reportData = JasperExportManager.exportReportToPdf(jasperPrint);
+
+            // save audit log
+            saveAuditData(request, "SUCCESS", reportData, "", auditLogId);
+
+            return ResponseEntity.ok(reportData);
 
         } catch (JRException e) {
 
-            Throwable cause = e;
+            String errorMessage = e.getCause().getCause().toString();
+            String ErrorSortMessage = e.getCause().getMessage();
 
-            while (cause.getCause() != null) {
-                cause = cause.getCause();
-            }
+            // save audit log
+            Long errorId = saveAuditData(request, "NOT-SUCCESS", null, errorMessage, null);
 
             throw new ReportExecutionException(
-                    cause.getMessage(),
-                    e
+                    ErrorSortMessage + " Error Log id: " + errorId
             );
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -340,6 +357,79 @@ public class JasperReportServiceImpl implements JasperReportService {
         return dataSource;
     }
 
+    ;
+
+
+    private Long saveAuditData(
+            JasperReportRequestDomain request,
+            String status,
+            byte[] reportData,
+            String errorMage,
+            Long auditLogId
+    ) throws SQLException {
+
+        JasperReportAuditLogEntity entity;
+
+        // Get existing audit record or create a new one
+        if (auditLogId != null) {
+            entity = jasperReportErrorLogService.getAuditLogById(auditLogId);
+        } else {
+            entity = null;
+        }
+
+        boolean isNew = (entity == null);
+
+        if (isNew) {
+            entity = new JasperReportAuditLogEntity();
+            entity.setStartTime(new Date());
+        }
+
+        Date endTime = new Date();
+
+        // Calculate duration for existing audit record
+        if (!isNew && entity.getStartTime() != null) {
+
+            long durationMillis =
+                    endTime.getTime() - entity.getStartTime().getTime();
+
+
+            entity.setEndTime(endTime);
+            entity.setDurationInms(durationMillis);
+        }
+
+        // Convert error message to CLOB
+        Clob clob = null;
+
+        if (errorMage != null && !errorMage.isEmpty()) {
+            clob = new SerialClob(errorMage.toCharArray());
+        }
+
+        entity.setError(clob);
+        entity.setReportFileName(request.getJasperFileName());
+        entity.setReportName(request.getReportName());
+        entity.setEntryUser(commonService.getCurrentUsername());
+        entity.setTerminal(commonService.getTerminal());
+        entity.setUserClient(commonService.getUserAgent());
+        entity.setStatus(status);
+        entity.setReportData(reportData);
+        entity.setEntryDate(new Date());
+        entity.setReportFormat(request.getReportFormat());
+        entity.setParameter(convertMapToClob(request.getParameters()));
+
+        return jasperReportErrorLogService.saveErrorLog(entity);
+    }
+
+
+    private Clob convertMapToClob(Map<String, Object> parameters) {
+        try {
+            String json = objectMapper.writeValueAsString(parameters);
+
+            return new SerialClob(json.toCharArray());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert parameters to JSON CLOB", e);
+        }
+    }
 
 
 }

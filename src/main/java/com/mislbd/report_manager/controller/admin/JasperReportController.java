@@ -4,6 +4,7 @@ import com.mislbd.report_manager.domain.admin.JasperReportDomain;
 import com.mislbd.report_manager.domain.admin.JasperReportRequestDomain;
 import com.mislbd.report_manager.service.admin.JasperReportService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileNotFoundException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -131,12 +133,13 @@ public class JasperReportController {
         }
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, disposition)
-                .header(
-                        HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
-                        HttpHeaders.CONTENT_DISPOSITION
-                )
-                .contentType(contentType)
+                 .header(
+                HttpHeaders.CONTENT_DISPOSITION,
+                ContentDisposition.attachment()
+                        .filename(fileName, StandardCharsets.UTF_8)
+                        .build()
+                        .toString()
+                ).contentType(contentType)
                 .body(report);
     }
 

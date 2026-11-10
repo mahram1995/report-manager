@@ -20,6 +20,7 @@ public class UdfProfileEntity {
     private Long id;
     private String code;
     private String name;
+    @Column(length = 1000)
     private String reportFileName;
     private String moduleName;
     @OneToMany(cascade = CascadeType.ALL)

@@ -35,23 +35,26 @@ public class swaggerConfiguration {
                 .build();
     }
 
-
-
-
     @Bean
-    public GroupedOpenApi customerApi() {
+    public GroupedOpenApi sprintApi() {
         return GroupedOpenApi.builder()
-                .group("Customer API 1.0.01")
-                .packagesToScan("com.mislbd.report_manager.controller.customer")
-                .addOpenApiCustomizer(openApi -> openApi.info(new Info()
-                        .title("Customer API Documentation")
-                        .version("1.0.01")
-                        .description("Endpoints for Customer access")
-                        .license(new io.swagger.v3.oas.models.info.License()
-                                .name("© Millennium Information Solution Limited")
-                                .url("http://www.mislbd.com"))))
+                .group("Sprint API 1.0.01")
+                .packagesToScan("com.mislbd.report_manager.sprint_manager.controller")
+                .addOpenApiCustomizer(openApi -> openApi
+                        .info(new Info()
+                                .title("Sprint API Documentation")
+                                .version("1.0.01")
+                                .description("Endpoints for Sprint functionality")
+                                .license(new License()
+                                        .name("© Millennium Information Solution Limited")
+                                        .url("http://www.mislbd.com")))
+                        // ✅ Add security item to this group
+                        .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
+                )
                 .build();
     }
+
+
 
     @Bean
     public GroupedOpenApi reportApi() {

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 
 public interface JasperReportService {
@@ -17,5 +18,5 @@ public interface JasperReportService {
     JasperReportDomain getByReportFileName(String reportFileName);
     List<JasperReportDomain> getByJasperReposts();
 
-    ResponseEntity<byte[]> runReport(JasperReportRequestDomain request) throws IOException, JRException;
+    ResponseEntity<byte[]> runReport(JasperReportRequestDomain request) throws IOException, JRException, SQLException;
 }

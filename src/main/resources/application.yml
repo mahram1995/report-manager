@@ -20,11 +20,23 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.OracleDialect
     hibernate:
-      ddl-auto: none # update/ none/ created
+      ddl-auto: none #none  update/ none/ created
     properties:
         hibernate:
           format_sql: true
     show-sql: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   port: 5050
@@ -45,3 +57,9 @@ springdoc:
    model-converters:
     jackson:
       enabled: true
+
+app:
+  mail:
+    from: ${MAIL_USERNAME}
+  google-chat:
+    webhook-url: ${GOOGLE_CHAT_WEBHOOK_URL}

@@ -11,6 +11,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 @SpringBootApplication()
 @EnableWebMvc
 @EnableAspectJAutoProxy
+
 public class ReportManagerApplication  extends SpringBootServletInitializer {
 	// in project structure > project> java-22
 	//  in setting>build>gradle> Java-22

@@ -33,6 +33,10 @@ dependencies {
 	// for security
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 
+	// for email service
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+
 
 	// for jwt token
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
