@@ -1,7 +1,9 @@
+
 package com.mislbd.report_manager.service.admin;
 
 import com.mislbd.report_manager.entity.admin.JasperReportEntity;
 import com.mislbd.report_manager.repository.admin.JasperReportRepository;
+
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperReport;
 
@@ -10,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.w3c.dom.*;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
@@ -20,46 +23,53 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class DatabaseSubReportService {
 
     private final JasperReportRepository jasperReportRepository;
 
-    private static final String PARAM_PREFIX = "__DB_SUBREPORT__";
+    private static final String PARAM_PREFIX =
+            "__DB_SUBREPORT__";
 
-    private static final Pattern REPO_PATTERN = Pattern.compile(
-            "(?i)repo:([^\"']+?\\.jrxml)"
-    );
+    private static final String IMAGE_PARAM_PREFIX =
+            "__DB_IMAGE__";
 
-    public DatabaseSubReportService(JasperReportRepository jasperReportRepository) {
+    public DatabaseSubReportService(
+            JasperReportRepository jasperReportRepository) {
+
         this.jasperReportRepository = jasperReportRepository;
     }
 
-
     /**
-     * Load and compile main report and all its subreports.
+     * Compile main report and all nested subreports.
      */
     @Transactional(readOnly = true)
     public JasperReport compileReport(
             String mainReportFileName,
             Map<String, Object> parameters) throws Exception {
 
+        if (parameters == null) {
+            throw new IllegalArgumentException(
+                    "Report parameters cannot be null"
+            );
+        }
+
         Map<String, JasperReport> compiledReports =
                 new HashMap<>();
 
-        Set<String> processingReports = new HashSet<>();
+        Set<String> processingReports =
+                new HashSet<>();
 
-        // Compile main report and recursively compile subreports.
+        // Compile main report and nested subreports.
         JasperReport mainReport = loadAndCompile(
                 mainReportFileName,
                 compiledReports,
-                processingReports
+                processingReports,
+                parameters
         );
 
-        // Make every compiled subreport available to the main report.
+        // Make compiled subreports available to the main report.
         for (Map.Entry<String, JasperReport> entry :
                 compiledReports.entrySet()) {
 
@@ -73,54 +83,66 @@ public class DatabaseSubReportService {
     }
 
     /**
-     * Load JRXML from database, process nested subreports,
-     * and compile the report.
+     * Load JRXML from database and compile it.
      */
     private JasperReport loadAndCompile(
             String reportFileName,
             Map<String, JasperReport> compiledReports,
-            Set<String> processingReports) throws Exception {
+            Set<String> processingReports,
+            Map<String, Object> parameters) throws Exception {
 
-        // Already compiled during this execution.
         if (compiledReports.containsKey(reportFileName)) {
             return compiledReports.get(reportFileName);
         }
 
-        // Prevent circular subreport references.
         if (!processingReports.add(reportFileName)) {
-            throw new IllegalStateException( "Circular subreport reference detected: " + reportFileName );
+            throw new IllegalStateException(
+                    "Circular subreport reference detected: "
+                            + reportFileName
+            );
         }
 
         try {
-            JasperReportEntity entity = jasperReportRepository
-                    .findByReportFileName(reportFileName)
-                    .orElseThrow(() -> new RuntimeException(
-                            "Report not found in database: "
-                                    + reportFileName
-                    ));
+
+            JasperReportEntity entity =
+                    jasperReportRepository
+                            .findByReportFileName(reportFileName)
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Report not found in database: "
+                                                    + reportFileName
+                                    )
+                            );
 
             byte[] jrxmlData = entity.getReportContent();
 
             if (jrxmlData == null || jrxmlData.length == 0) {
-                throw new RuntimeException(  "Empty JRXML content: " + reportFileName  );
+                throw new RuntimeException(
+                        "Empty JRXML content: " + reportFileName
+                );
             }
 
-            // Modify JRXML in memory.
-            byte[] modifiedJrxml = processSubreports(
+            // Process images and subreports.
+            byte[] modifiedJrxml = processJrxml(
                     jrxmlData,
                     compiledReports,
-                    processingReports
+                    processingReports,
+                    parameters
             );
 
-            // Compile the modified JRXML.
             JasperReport compiledReport;
 
-            try (InputStream inputStream =new ByteArrayInputStream(modifiedJrxml)) {
+            try (InputStream inputStream =
+                         new ByteArrayInputStream(modifiedJrxml)) {
 
-                compiledReport =  JasperCompileManager.compileReport(inputStream);
+                compiledReport =
+                        JasperCompileManager.compileReport(inputStream);
             }
 
-            compiledReports.put(   reportFileName,compiledReport  );
+            compiledReports.put(
+                    reportFileName,
+                    compiledReport
+            );
 
             return compiledReport;
 
@@ -130,20 +152,20 @@ public class DatabaseSubReportService {
     }
 
     /**
-     * Find all subreports and replace their expressions.
+     * Process images and subreports inside JRXML.
      */
-
-    private byte[] processSubreports(
+    private byte[] processJrxml(
             byte[] jrxmlData,
             Map<String, JasperReport> compiledReports,
-            Set<String> processingReports) throws Exception {
+            Set<String> processingReports,
+            Map<String, Object> parameters) throws Exception {
 
         DocumentBuilderFactory factory =
                 DocumentBuilderFactory.newInstance();
 
         factory.setNamespaceAware(true);
 
-        // Prevent XML external entity processing.
+        // Secure XML parsing.
         factory.setFeature(
                 "http://apache.org/xml/features/disallow-doctype-decl",
                 true
@@ -162,6 +184,16 @@ public class DatabaseSubReportService {
         factory.setXIncludeAware(false);
         factory.setExpandEntityReferences(false);
 
+        factory.setAttribute(
+                XMLConstants.ACCESS_EXTERNAL_DTD,
+                ""
+        );
+
+        factory.setAttribute(
+                XMLConstants.ACCESS_EXTERNAL_SCHEMA,
+                ""
+        );
+
         Document document;
 
         try (InputStream inputStream =
@@ -170,13 +202,120 @@ public class DatabaseSubReportService {
             document = factory.newDocumentBuilder().parse(inputStream);
         }
 
+        Element root = document.getDocumentElement();
+
+        // =========================================
+        // PROCESS IMAGES
+        // =========================================
+
+        NodeList images =
+                document.getElementsByTagNameNS("*", "image");
+
+        for (int i = 0; i < images.getLength(); i++) {
+
+            Element image = (Element) images.item(i);
+
+            Element imageExpression = getDirectChild(
+                    image,
+                    "imageExpression"
+            );
+
+            if (imageExpression == null) {
+                continue;
+            }
+
+            String expressionText =
+                    imageExpression.getTextContent().trim();
+
+            // Extract static image filename.
+            String imageFileName = expressionText
+                    .replace("\"", "")
+                    .replace("'", "")
+                    .trim();
+
+            // Skip dynamic expressions.
+            if (imageFileName.isEmpty()
+                    || imageFileName.contains("$P{")
+                    || imageFileName.contains("$F{")
+                    || imageFileName.contains("$V{")
+                    || imageFileName.contains("(")
+                    || imageFileName.contains("+")) {
+
+                continue;
+            }
+
+            // Only process image files.
+            String lowerName =
+                    imageFileName.toLowerCase(Locale.ROOT);
+
+            if (!(lowerName.endsWith(".png")
+                    || lowerName.endsWith(".jpg")
+                    || lowerName.endsWith(".jpeg")
+                    || lowerName.endsWith(".gif")
+                    || lowerName.endsWith(".bmp")
+                    || lowerName.endsWith(".tif")
+                    || lowerName.endsWith(".tiff"))) {
+
+                continue;
+            }
+
+            String parameterName =
+                    IMAGE_PARAM_PREFIX + imageFileName;
+
+            // Retrieve image from database only once.
+            if (!parameters.containsKey(parameterName)) {
+
+                JasperReportEntity imageEntity =
+                        jasperReportRepository
+                                .findByReportFileName(imageFileName)
+                                .orElseThrow(() ->
+                                        new RuntimeException(
+                                                "Image not found in database: "
+                                                        + imageFileName
+                                        )
+                                );
+
+                byte[] imageData =
+                        imageEntity.getReportContent();
+
+                if (imageData == null || imageData.length == 0) {
+                    throw new RuntimeException(
+                            "Empty image data: " + imageFileName
+                    );
+                }
+
+                // Pass raw byte array.
+                parameters.put(
+                        parameterName,
+                        imageData
+                );
+            }
+
+            // Dynamically declare image parameter.
+            addParameterIfNotExists(
+                    document,
+                    root,
+                    parameterName,
+                    "java.lang.Object"
+            );
+
+            // Replace original image expression.
+            imageExpression.setTextContent(
+                    "$P{" + parameterName + "}"
+            );
+        }
+
+        // =========================================
+        // PROCESS SUBREPORTS
+        // =========================================
+
         NodeList subreports =
                 document.getElementsByTagNameNS("*", "subreport");
 
-        // Process every subreport.
         for (int i = 0; i < subreports.getLength(); i++) {
 
-            Element subreport = (Element) subreports.item(i);
+            Element subreport =
+                    (Element) subreports.item(i);
 
             Element expression = getDirectChild(
                     subreport,
@@ -187,13 +326,8 @@ public class DatabaseSubReportService {
                 continue;
             }
 
-            // Read original expression.
             String expressionText =
                     expression.getTextContent().trim();
-
-            System.out.println(
-                    "Original Subreport Expression: " + expressionText
-            );
 
             // Remove surrounding quotes.
             String subreportFileName = expressionText
@@ -209,47 +343,38 @@ public class DatabaseSubReportService {
                         subreportFileName.substring(5).trim();
             }
 
-            // Remove any remaining whitespace.
-            subreportFileName = subreportFileName.trim();
-
-            // Only process JRXML files.
             if (!subreportFileName.toLowerCase(Locale.ROOT)
                     .endsWith(".jrxml")) {
-
-                System.out.println(
-                        "Skipping non-JRXML expression: "
-                                + expressionText
-                );
 
                 continue;
             }
 
-            System.out.println(
-                    "Resolved Subreport File: " + subreportFileName
-            );
-
-            // Load and compile subreport recursively.
+            // Recursively compile subreport.
             loadAndCompile(
                     subreportFileName,
                     compiledReports,
-                    processingReports
+                    processingReports,
+                    parameters
             );
 
-            // Create parameter key.
             String parameterKey =
                     PARAM_PREFIX + subreportFileName;
 
-            // Replace expression with compiled report reference.
+            // Declare subreport parameter if required.
+            addParameterIfNotExists(
+                    document,
+                    root,
+                    parameterKey,
+                    "net.sf.jasperreports.engine.JasperReport"
+            );
+
+            // Replace subreport expression.
             expression.setTextContent(
                     "$P{REPORT_PARAMETERS_MAP}.get(\""
                             + parameterKey + "\")"
             );
 
-            /*
-             * Pass the parent parameter map to the child report.
-             * This allows nested subreports to access compiled
-             * subreports and inherited parameters.
-             */
+            // Pass parent parameter map to child.
             Element parameterMapExpression = getDirectChild(
                     subreport,
                     "parametersMapExpression"
@@ -286,13 +411,26 @@ public class DatabaseSubReportService {
             );
         }
 
-        // Convert modified XML back to bytes.
+        // =========================================
+        // CONVERT XML TO BYTE ARRAY
+        // =========================================
+
         TransformerFactory transformerFactory =
                 TransformerFactory.newInstance();
 
         transformerFactory.setFeature(
-                javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING,
+                XMLConstants.FEATURE_SECURE_PROCESSING,
                 true
+        );
+
+        transformerFactory.setAttribute(
+                XMLConstants.ACCESS_EXTERNAL_DTD,
+                ""
+        );
+
+        transformerFactory.setAttribute(
+                XMLConstants.ACCESS_EXTERNAL_STYLESHEET,
+                ""
         );
 
         Transformer transformer =
@@ -314,9 +452,123 @@ public class DatabaseSubReportService {
         return outputStream.toByteArray();
     }
 
+    /**
+     * Add parameter declaration in correct JRXML position.
+     */
+
+    private void addParameterIfNotExists(
+            Document document,
+            Element root,
+            String parameterName,
+            String parameterClass) {
+
+        NodeList parameters =
+                root.getElementsByTagNameNS("*", "parameter");
+
+        // Check whether parameter already exists.
+        for (int i = 0; i < parameters.getLength(); i++) {
+
+            Element parameter = (Element) parameters.item(i);
+
+            if (parameterName.equals(parameter.getAttribute("name"))) {
+                return;
+            }
+        }
+
+        // Create parameter using the same namespace.
+        String namespace = root.getNamespaceURI();
+        String prefix = root.getPrefix();
+
+        String qualifiedName =
+                prefix == null || prefix.isEmpty()
+                        ? "parameter"
+                        : prefix + ":parameter";
+
+        Element newParameter = document.createElementNS(
+                namespace,
+                qualifiedName
+        );
+
+        newParameter.setAttribute("name", parameterName);
+        newParameter.setAttribute("class", parameterClass);
+
+        // Find last existing parameter.
+        Element lastParameter = null;
+
+        NodeList children = root.getChildNodes();
+
+        for (int i = 0; i < children.getLength(); i++) {
+
+            Node child = children.item(i);
+
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+
+            Element element = (Element) child;
+
+            String localName = element.getLocalName();
+
+            if ("parameter".equals(localName)) {
+                lastParameter = element;
+            }
+        }
+
+        if (lastParameter != null) {
+
+            // Insert immediately after last parameter.
+            Node next = lastParameter.getNextSibling();
+
+            root.insertBefore(newParameter, next);
+
+        } else {
+
+            // No existing parameters.
+            // Insert before the first field or later section.
+            Node insertBefore = null;
+
+            for (int i = 0; i < children.getLength(); i++) {
+
+                Node child = children.item(i);
+
+                if (child.getNodeType() != Node.ELEMENT_NODE) {
+                    continue;
+                }
+
+                String name = child.getLocalName();
+
+                if ("field".equals(name)
+                        || "sortField".equals(name)
+                        || "variable".equals(name)
+                        || "filterExpression".equals(name)
+                        || "group".equals(name)
+                        || "background".equals(name)
+                        || "title".equals(name)
+                        || "pageHeader".equals(name)
+                        || "columnHeader".equals(name)
+                        || "detail".equals(name)
+                        || "columnFooter".equals(name)
+                        || "pageFooter".equals(name)
+                        || "lastPageFooter".equals(name)
+                        || "summary".equals(name)
+                        || "noData".equals(name)) {
+
+                    insertBefore = child;
+                    break;
+                }
+            }
+
+            if (insertBefore != null) {
+                root.insertBefore(newParameter, insertBefore);
+            } else {
+                root.appendChild(newParameter);
+            }
+        }
+    }
+
 
     /**
-     * Find a direct child element by its local name.
+     * Find direct child element by local name.
      */
     private Element getDirectChild(
             Element parent,
@@ -344,6 +596,4 @@ public class DatabaseSubReportService {
 
         return null;
     }
-
-
 }

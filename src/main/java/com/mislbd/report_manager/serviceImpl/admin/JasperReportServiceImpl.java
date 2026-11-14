@@ -363,10 +363,38 @@ public class JasperReportServiceImpl implements JasperReportService {
         return parameters;
     }
 
+    public static Map<String, Object> convertDateToString(
+            Map<String, Object> parameters) {
+
+        if (parameters == null) {
+            return null;
+        }
+
+        Map<String, Object> result = new HashMap<>();
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+
+            Object value = entry.getValue();
+
+            if (value instanceof java.util.Date) {
+                result.put(entry.getKey(), sdf.format((java.util.Date) value));
+            } else {
+                result.put(entry.getKey(), value);
+            }
+        }
+
+        return result;
+    }
+
     @Override
     public ResponseEntity<byte[]> runReport(JasperReportRequestDomain request) throws IOException, JRException, SQLException {
         String reportFileName = request.getJasperFileName();
         Optional<JasperReportEntity> entity = jasperReportRepository.findByReportFileName(reportFileName);
+        JasperReportRequestDomain orginalRequest=request;
+        orginalRequest.setParameters(convertDateToString(request.getParameters()));
+
 
         long auditLogId;
 
@@ -398,7 +426,7 @@ public class JasperReportServiceImpl implements JasperReportService {
         try (Connection connection = dataSource.getConnection()) {
 
             // entry the initial log
-            auditLogId = saveAuditData(request, "PROCESSING", null, "",null);
+            auditLogId = saveAuditData(orginalRequest, "PROCESSING", null, "",null);
 
             // String filePath = "C:\\Users\\User\\Downloads\\MITS_20028_CL_REPORT_OLD\\MITS_20028_CL_REPORT_OLD\\CL1_TOPSHEET_OLD.jasper";
             //File file = new File(filePath);
@@ -671,7 +699,10 @@ public class JasperReportServiceImpl implements JasperReportService {
         entity.setReportData(reportData);
         entity.setEntryDate(new Date());
         entity.setReportFormat(request.getReportFormat());
-        entity.setParameter(convertMapToClob(request.getParameters()));
+        if(status=="PROCESSING"){
+            entity.setParameter(convertMapToClob(request.getParameters()));
+        }
+
 
         return jasperReportErrorLogService.saveErrorLog(entity);
     }

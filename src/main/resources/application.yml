@@ -16,6 +16,17 @@ spring:
       max-lifetime: 1800000        # 30 minutes
       connection-timeout: 30000    # 30 seconds
       auto-commit: true
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 500MB
+      file-size-threshold: 2MB  # user for save large number of file or large size file
+
+  server:
+   tomcat:
+    max-swallow-size: -1
+    max-http-form-post-size: 524288000  # user for save large number of file or large size file
 
   jpa:
     database-platform: org.hibernate.dialect.OracleDialect
