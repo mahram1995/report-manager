@@ -5,6 +5,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Optional;
 
@@ -12,7 +14,7 @@ import java.util.Optional;
 public interface JasperReportAuditLogService {
     Long saveErrorLog(JasperReportAuditLogEntity entity);
     JasperReportAuditLogEntity getAuditLogById(Long auditLogId);
-    ResponseEntity<Object> getErrorLog(String status, String entryUser, Date fromDate, Date toDate, String reportName, Pageable pagebale);
+    ResponseEntity<Object> getErrorLog(String status, String entryUser, LocalDateTime fromDate, LocalDateTime toDate, String reportName, Pageable pagebale);
     ResponseEntity<byte[]> getReport(Long auditLogId);
     ResponseEntity<String> getError(Long auditLogId);;
 }

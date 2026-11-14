@@ -1,5 +1,6 @@
 package com.mislbd.report_manager.entity.admin;
 
+import com.mislbd.report_manager.configuration.aopConfig.auditListener.AuditEntityListener;
 import com.mislbd.report_manager.configuration.aopConfig.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -11,7 +12,8 @@ import java.sql.Blob;
 @Data
 @Entity
 @Table(name = "jasper_report")
-public class JasperReportEntity  {
+@EntityListeners(AuditEntityListener.class)
+public class JasperReportEntity extends BaseEntity  {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

@@ -1,8 +1,6 @@
 package com.mislbd.report_manager.entity.admin;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
@@ -10,6 +8,7 @@ import lombok.Data;
 @Table(name = "DATABASE_CONFIG")
 public class DatabaseConfigEntity {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String dbName;
     private String url;

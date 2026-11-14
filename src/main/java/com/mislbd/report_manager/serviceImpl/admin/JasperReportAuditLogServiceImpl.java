@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -49,8 +51,8 @@ public class JasperReportAuditLogServiceImpl implements JasperReportAuditLogServ
     public ResponseEntity<Object> getErrorLog(
             String status,
             String entryUser,
-            Date fromDate,
-            Date toDate,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
             String reportName,
             Pageable pageable) {
 

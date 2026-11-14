@@ -2,6 +2,7 @@ package com.mislbd.report_manager.controller.admin;
 
 import com.mislbd.report_manager.domain.admin.JasperReportDomain;
 import com.mislbd.report_manager.domain.admin.JasperReportRequestDomain;
+import com.mislbd.report_manager.projection.JasperReportHistAuditProjection;
 import com.mislbd.report_manager.service.admin.JasperReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
@@ -13,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileNotFoundException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -22,26 +24,59 @@ public class JasperReportController {
 
     private final JasperReportService jasperReportService;
 
-    @PostMapping
-    public ResponseEntity<JasperReportDomain> save(
-            @RequestParam("reportFileName") String reportFileName,
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<JasperReportDomain>> save(
             @RequestParam("dataSource") String dataSource,
-            @RequestParam("reportFile") MultipartFile reportFile)
-            throws Exception {
+            @RequestParam("files") MultipartFile[] files) throws Exception {
 
-        JasperReportDomain domain = new JasperReportDomain();
+        List<JasperReportDomain> savedReports = new ArrayList<>();
 
-        domain.setReportFileName(reportFileName);
-        domain.setDataSource(dataSource);
-        domain.setReportContent(reportFile.getBytes());
+        for (MultipartFile file : files) {
 
-        JasperReportDomain saved =
-                jasperReportService.save(domain);
+            if (file.isEmpty()) {
+                continue;
+            }
 
-        // Don't return BLOB content in normal save response
-        saved.setReportContent(null);
+            String fileName = file.getOriginalFilename();
+            String extension = "";
 
-        return ResponseEntity.ok(saved);
+            if (fileName != null && fileName.contains(".")) {
+                extension = fileName.substring(fileName.lastIndexOf(".") + 1);
+            }
+
+            if ("jrxml".equalsIgnoreCase(extension)
+                    || "jasper".equalsIgnoreCase(extension)) {
+
+                JasperReportDomain domain = new JasperReportDomain();
+
+                domain.setReportFileName(fileName);
+                domain.setDataSource(dataSource);
+                domain.setReportContent(file.getBytes());
+
+                JasperReportDomain saved = jasperReportService.save(domain);
+
+                // Don't return BLOB content
+                saved.setReportContent(null);
+
+                savedReports.add(saved);
+            }
+            else if ("png".equalsIgnoreCase(extension)) {
+
+                // Save PNG separately using your image service
+//                jasperReportImageService.saveImage(
+//                        fileName,
+//                        dataSource,
+//                        file.getBytes()
+//                );
+            }
+            else {
+                throw new IllegalArgumentException(
+                        "Unsupported file format: " + fileName
+                );
+            }
+        }
+
+        return ResponseEntity.ok(savedReports);
     }
 
     @PutMapping("/{id}")
@@ -68,9 +103,30 @@ public class JasperReportController {
     public ResponseEntity<List<JasperReportDomain>> getJasperReports() {
 
         List<JasperReportDomain> reports =
-                jasperReportService.getByJasperReposts();
+                jasperReportService.getJasperReports();
 
         return ResponseEntity.ok(reports);
+    }
+
+    @GetMapping("/get-report-content")
+    public  ResponseEntity<byte[]> getJasperReportContent(
+            @RequestParam(name="reportId", required = false) Long reportId
+    ) {
+        return jasperReportService.getJasperReportContent(reportId);
+    }
+
+    @GetMapping("/get-report-hist")
+    public ResponseEntity<List<JasperReportHistAuditProjection>> getAuditList(
+            @RequestParam(name="reportFileName", required = true) String reportFileName){
+
+        return ResponseEntity.ok(jasperReportService.getAuditList(reportFileName));
+    }
+
+    @GetMapping("/get-report-hist-content")
+    public   ResponseEntity<byte[]> getJasperReportHistContent(
+            @RequestParam(name="reportHistId", required = true) Long reportHistId)
+    {
+        return jasperReportService.getJasperReportHistContent(reportHistId);
     }
 
 

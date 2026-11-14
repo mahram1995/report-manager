@@ -10,6 +10,7 @@ import com.mislbd.report_manager.entity.admin.JasperReportAuditLogEntity;
 import com.mislbd.report_manager.entity.admin.JasperReportHistEntity;
 import com.mislbd.report_manager.exception.ReportExecutionException;
 import com.mislbd.report_manager.mapper.admin.JasperReportMapper;
+import com.mislbd.report_manager.projection.JasperReportHistAuditProjection;
 import com.mislbd.report_manager.repository.admin.DatabaseConfigRepository;
 import com.mislbd.report_manager.repository.admin.JasperReportHistRepository;
 import com.mislbd.report_manager.repository.admin.JasperReportRepository;
@@ -30,8 +31,8 @@ import net.sf.jasperreports.export.SimpleHtmlExporterOutput;
 import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
 import net.sf.jasperreports.export.SimpleWriterExporterOutput;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -41,8 +42,13 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -93,6 +99,12 @@ public class JasperReportServiceImpl implements JasperReportService {
         return jasperReportMapper.entityToDomain(savedEntity);
     }
 
+
+    @Override
+    public List<JasperReportHistAuditProjection> getAuditList(String reportFileName) {
+        return histRepository.findAuditList(reportFileName);
+    }
+
     @Override
     @Transactional
     public JasperReportDomain update(
@@ -113,6 +125,14 @@ public class JasperReportServiceImpl implements JasperReportService {
                 || domain.getReportFileName().trim().isEmpty()) {
             throw new IllegalArgumentException(
                     "Report file name is required");
+        }
+
+        if(id.toString()!=null){
+            // Update audit information
+            entity.setUpdateBy(commonService.getCurrentUsername());
+            entity.setUpdateDateTime(LocalDateTime.now());
+            entity.setUpdateTerminal(commonService.getTerminal());
+            entity.setUpdateAgent(commonService.getUserAgent());
         }
 
         if (domain.getReportContent() == null
@@ -152,10 +172,193 @@ public class JasperReportServiceImpl implements JasperReportService {
     }
 
     @Override
-    public List<JasperReportDomain> getByJasperReposts() {
-        List<JasperReportEntity> entities = jasperReportRepository.findAll();
+    public List<JasperReportDomain> getJasperReports() {
+        List<JasperReportEntity> entities = jasperReportRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
 
         return entities.stream().map(jasperReportMapper::entityToDomain).collect(Collectors.toList());
+    }
+
+    private String getSafeFileName(String fileName) {
+
+        if (fileName == null || fileName.trim().isEmpty()) {
+            return "report";
+        }
+
+        // Remove directory paths, if any
+        fileName = fileName.replace("\\", "/");
+
+        return fileName.substring(fileName.lastIndexOf("/") + 1);
+    }
+
+    private String getUniqueFileName(String fileName, Set<String> usedFileNames) {
+
+        String name = fileName;
+        String extension = "";
+
+        int dotIndex = fileName.lastIndexOf(".");
+
+        if (dotIndex > 0) {
+            name = fileName.substring(0, dotIndex);
+            extension = fileName.substring(dotIndex);
+        }
+
+        String uniqueName = fileName;
+        int count = 1;
+
+        while (usedFileNames.contains(uniqueName.toLowerCase())) {
+            uniqueName = name + "_" + count + extension;
+            count++;
+        }
+
+        usedFileNames.add(uniqueName.toLowerCase());
+
+        return uniqueName;
+    }
+    @Override
+    public ResponseEntity<byte[]> getJasperReportContent(Long id) {
+
+        try {
+            // Download a specific report
+            if (id != null) {
+
+                JasperReportEntity entity = jasperReportRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException(
+                                "Report not found for ID: " + id));
+
+                byte[] reportContent = entity.getReportContent();
+
+                if (reportContent == null || reportContent.length == 0) {
+                    throw new RuntimeException("Report content is empty.");
+                }
+
+                String fileName = getSafeFileName(entity.getReportFileName());
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                headers.setContentDisposition(
+                        ContentDisposition.attachment()
+                                .filename(fileName)
+                                .build()
+                );
+
+                return new ResponseEntity<>(reportContent, headers, HttpStatus.OK);
+            }
+
+            // Download all reports as a ZIP file
+            List<JasperReportEntity> reports = jasperReportRepository.findAll();
+
+            if (reports.isEmpty()) {
+                throw new RuntimeException("No reports found.");
+            }
+
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+            try (ZipOutputStream zipOutputStream =
+                         new ZipOutputStream(byteArrayOutputStream)) {
+
+                Set<String> usedFileNames = new HashSet<>();
+
+                for (JasperReportEntity report : reports) {
+
+                    byte[] reportContent = report.getReportContent();
+
+                    if (reportContent == null || reportContent.length == 0) {
+                        continue;
+                    }
+
+                    String fileName = getSafeFileName(report.getReportFileName());
+
+                    // Avoid duplicate filenames inside ZIP
+                    String zipEntryName = getUniqueFileName(fileName, usedFileNames);
+
+                    ZipEntry zipEntry = new ZipEntry(zipEntryName);
+                    zipOutputStream.putNextEntry(zipEntry);
+
+                    zipOutputStream.write(reportContent);
+
+                    zipOutputStream.closeEntry();
+                }
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDisposition(
+                    ContentDisposition.attachment()
+                            .filename("reports.zip")
+                            .build()
+            );
+
+            return new ResponseEntity<>(
+                    byteArrayOutputStream.toByteArray(),
+                    headers,
+                    HttpStatus.OK
+            );
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to download report files.", e);
+        }
+    }
+
+    @Override
+    public ResponseEntity<byte[]> getJasperReportHistContent(Long histId) {
+        try {
+                JasperReportHistEntity entity = histRepository.findById(histId)
+                        .orElseThrow(() -> new RuntimeException(
+                                "Report not found for ID: " + histId));
+
+                byte[] reportContent = entity.getReportContent();
+
+                if (reportContent == null || reportContent.length == 0) {
+                    throw new RuntimeException("Report content is empty.");
+                }
+
+                String fileName = getSafeFileName(entity.getReportFileName());
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                headers.setContentDisposition(
+                        ContentDisposition.attachment()
+                                .filename(fileName)
+                                .build()
+                );
+
+                return new ResponseEntity<>(reportContent, headers, HttpStatus.OK);
+
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to download report files.", e);
+        }
+
+    }
+
+    public static Map<String, Object> convertDateParameters(
+            Map<String, Object> parameters) {
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        sdf.setLenient(false);
+
+        parameters.replaceAll((key, value) -> {
+
+            if (value instanceof String) {
+                String dateValue = ((String) value).trim();
+
+                if (dateValue.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                    try {
+                        java.util.Date parsedDate = sdf.parse(dateValue);
+
+                        return new java.sql.Date(parsedDate.getTime());
+
+                    } catch (ParseException e) {
+                        throw new IllegalArgumentException(
+                                "Invalid date parameter: " + key, e);
+                    }
+                }
+            }
+
+            return value;
+        });
+
+        return parameters;
     }
 
     @Override
@@ -168,6 +371,7 @@ public class JasperReportServiceImpl implements JasperReportService {
         if (entity.isEmpty()) {
             throw new RuntimeException("File not Found: " + reportFileName);
         }
+        request.setParameters(convertDateParameters(request.getParameters()));
 
         if (entity.get().getReportContent() == null
                 || entity.get().getReportContent().length == 0) {
@@ -181,7 +385,7 @@ public class JasperReportServiceImpl implements JasperReportService {
 
 
         // Get database connection
-        DatabaseConfigEntity db = getDatabase(101L).orElseThrow(() -> new RuntimeException("Database not found"));
+        DatabaseConfigEntity db = getDatabase(Long.valueOf(entity.get().getDataSource())).orElseThrow(() -> new RuntimeException("Database not found"));
         DataSource dataSource = createDataSource(db);
         // Get parameters
         Map<String, Object> reportParameters = request.getParameters() != null
@@ -323,16 +527,60 @@ public class JasperReportServiceImpl implements JasperReportService {
 
         } catch (JRException e) {
 
-            String errorMessage = e.getCause().getCause().toString();
-            String ErrorSortMessage = e.getCause().getMessage();
+            String errorMessage = getFullErrorMessage(e);
+            String errorShortMessage = getRootErrorMessage(e);
 
-            // save audit log
-            Long errorId = saveAuditData(request, "NOT-SUCCESS", null, errorMessage, null);
+            // Save audit log
+            Long errorId = saveAuditData(
+                    request,
+                    "NOT-SUCCESS",
+                    null,
+                    errorMessage,
+                    null
+            );
 
             throw new ReportExecutionException(
-                    ErrorSortMessage + " Error Log id: " + errorId
+                    errorShortMessage + " Error Log id: " + errorId
             );
         }
+    }
+
+    public static String getRootErrorMessage(Throwable exception) {
+
+        if (exception == null) {
+            return "Unknown error occurred";
+        }
+
+        Throwable rootCause = exception;
+
+        // Find the deepest cause safely
+        while (rootCause.getCause() != null
+                && rootCause.getCause() != rootCause) {
+
+            rootCause = rootCause.getCause();
+        }
+
+        String message = rootCause.getMessage();
+
+        if (message == null || message.trim().isEmpty()) {
+            message = rootCause.toString();
+        }
+
+        return message;
+    }
+
+    public static String getFullErrorMessage(Throwable exception) {
+
+        if (exception == null) {
+            return "Unknown error occurred";
+        }
+
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+
+        exception.printStackTrace(pw);
+
+        return sw.toString();
     }
 
     public Optional<DatabaseConfigEntity> getDatabase(Long id) {

@@ -24,11 +24,15 @@ public class AuditorContextHolder {
 
     // ✅ optional payload support
     public static void setCommand(Command command) {
+
         currentCommand.set(command);
     }
 
     public static Command getCommand() {
-        return currentCommand.get();
+        if(currentCommand!=null){
+            return currentCommand.get();
+        }
+        return null;
     }
 
     public static void setClientIp(String clientIp){

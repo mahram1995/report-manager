@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 @Getter
 @EntityListeners(AuditEntityListener.class)
 public class BaseEntity {
+
+    // user @EntityListeners(AuditEntityListener.class) when extend this class from any entity
     @Column(updatable = false)
     private String createdBy;
     @Column(updatable = false)

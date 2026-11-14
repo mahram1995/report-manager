@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Clob;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @RestController
@@ -40,13 +42,8 @@ public class JasperReportAuditController {
     public ResponseEntity<Object> getErrorLog(
             @RequestParam(name = "status",required = false) String status,
             @RequestParam(name = "entryUser", required = false) String entryUser,
-
-            @RequestParam(name = "fromDate",required = false)
-            @DateTimeFormat( pattern = "yyyy-MM-dd") Date fromDate,
-
-            @RequestParam(name = "toDate", required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd") Date toDate,
-
+            @RequestParam(name = "fromDate",required = false) String fromDate,
+            @RequestParam(name = "toDate", required = false) String toDate,
             @RequestParam(name = "reportName",required = false) String reportName,
             @RequestParam(name = "asList",defaultValue = "true") boolean asList,
             @RequestParam(name = "page",required = false) Integer page,
@@ -64,12 +61,21 @@ public class JasperReportAuditController {
             }
         }
 
+        LocalDateTime startDate =null;
+        LocalDateTime endDate =null;
+
+        if(fromDate!=null || toDate!=null){
+            LocalDate from = LocalDate.parse(fromDate);
+            LocalDate to = LocalDate.parse(toDate);
+             startDate = from.atStartOfDay();
+             endDate = to.plusDays(1).atStartOfDay();
+        }
 
         return auditLogService.getErrorLog(
                 status,
                 entryUser,
-                fromDate,
-                toDate,
+                startDate,
+                endDate,
                 reportName,
                 pageable
         );
