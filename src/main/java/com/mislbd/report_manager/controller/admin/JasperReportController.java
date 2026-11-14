@@ -61,13 +61,18 @@ public class JasperReportController {
                 savedReports.add(saved);
             }
             else if ("png".equalsIgnoreCase(extension)) {
+                JasperReportDomain domain = new JasperReportDomain();
 
-                // Save PNG separately using your image service
-//                jasperReportImageService.saveImage(
-//                        fileName,
-//                        dataSource,
-//                        file.getBytes()
-//                );
+                domain.setReportFileName(fileName);
+                domain.setDataSource(dataSource);
+                domain.setReportContent(file.getBytes());
+
+                JasperReportDomain saved = jasperReportService.save(domain);
+
+                // Don't return BLOB content
+                saved.setReportContent(null);
+
+                savedReports.add(saved);
             }
             else {
                 throw new IllegalArgumentException(

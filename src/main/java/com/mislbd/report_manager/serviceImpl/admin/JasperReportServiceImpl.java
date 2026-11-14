@@ -14,6 +14,7 @@ import com.mislbd.report_manager.projection.JasperReportHistAuditProjection;
 import com.mislbd.report_manager.repository.admin.DatabaseConfigRepository;
 import com.mislbd.report_manager.repository.admin.JasperReportHistRepository;
 import com.mislbd.report_manager.repository.admin.JasperReportRepository;
+import com.mislbd.report_manager.service.admin.DatabaseSubReportService;
 import com.mislbd.report_manager.service.admin.JasperReportAuditLogService;
 import com.mislbd.report_manager.service.admin.JasperReportService;
 import com.zaxxer.hikari.HikariDataSource;
@@ -60,6 +61,7 @@ public class JasperReportServiceImpl implements JasperReportService {
     private final JasperReportMapper jasperReportMapper;
     private final CommonService commonService;
     private final DatabaseConfigRepository databaseConfigRepository;
+    private final DatabaseSubReportService subReportService;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -403,8 +405,13 @@ public class JasperReportServiceImpl implements JasperReportService {
             //JasperReport jasperReport=JasperCompileManager.compileReport(filePath);
             // JasperReport jasperReport =(JasperReport) JRLoader.loadObject(file);
 
+            // this is use for only compile main report
+                 // JasperReport jasperReport = JasperCompileManager.compileReport(new ByteArrayInputStream(reportBytes));
 
-            JasperReport jasperReport = JasperCompileManager.compileReport(new ByteArrayInputStream(reportBytes));
+            JasperReport jasperReport= subReportService.compileReport(
+                    request.getJasperFileName(),
+                    reportParameters
+            );
 
 
             JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, reportParameters, connection);
@@ -542,6 +549,8 @@ public class JasperReportServiceImpl implements JasperReportService {
             throw new ReportExecutionException(
                     errorShortMessage + " Error Log id: " + errorId
             );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
