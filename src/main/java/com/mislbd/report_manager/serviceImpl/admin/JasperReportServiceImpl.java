@@ -8,6 +8,7 @@ import com.mislbd.report_manager.entity.admin.DatabaseConfigEntity;
 import com.mislbd.report_manager.entity.admin.JasperReportEntity;
 import com.mislbd.report_manager.entity.admin.JasperReportAuditLogEntity;
 import com.mislbd.report_manager.entity.admin.JasperReportHistEntity;
+import com.mislbd.report_manager.exception.ExceptionUtils;
 import com.mislbd.report_manager.exception.ReportExecutionException;
 import com.mislbd.report_manager.mapper.admin.JasperReportMapper;
 import com.mislbd.report_manager.projection.JasperReportHistAuditProjection;
@@ -562,8 +563,8 @@ public class JasperReportServiceImpl implements JasperReportService {
 
         } catch (JRException e) {
 
-            String errorMessage = getFullErrorMessage(e);
-            String errorShortMessage = getRootErrorMessage(e);
+            String errorMessage = ExceptionUtils.getFullErrorMessage(e);
+            String errorShortMessage = ExceptionUtils.getRootErrorMessage(e);
 
             // Save audit log
             Long errorId = saveAuditData(
@@ -577,48 +578,44 @@ public class JasperReportServiceImpl implements JasperReportService {
             throw new ReportExecutionException(
                     errorShortMessage + " Error Log id: " + errorId
             );
+        } catch (SQLException e) {
+            String errorMessage = ExceptionUtils.getFullErrorMessage(e);
+            String errorShortMessage = ExceptionUtils.getRootErrorMessage(e);
+
+            System.out.println("Root Cause: " + errorMessage);
+            Long errorId = saveAuditData(
+                    request,
+                    "NOT-SUCCESS",
+                    null,
+                    errorMessage,
+                    auditLogId
+            );
+
+            throw new ReportExecutionException(
+                    errorShortMessage + " Error Log id: " + errorId
+            );
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            String errorMessage = ExceptionUtils.getFullErrorMessage(e);
+            String errorShortMessage = ExceptionUtils.getRootErrorMessage(e);
+
+            System.out.println("Root Cause: " + errorMessage);
+            Long errorId = saveAuditData(
+                    request,
+                    "NOT-SUCCESS",
+                    null,
+                    errorMessage,
+                    auditLogId
+            );
+
+            throw new ReportExecutionException(
+                    errorShortMessage + " Error Log id: " + errorId
+            );
         }
     }
 
-    public static String getRootErrorMessage(Throwable exception) {
 
-        if (exception == null) {
-            return "Unknown error occurred";
-        }
 
-        Throwable rootCause = exception;
 
-        // Find the deepest cause safely
-        while (rootCause.getCause() != null
-                && rootCause.getCause() != rootCause) {
-
-            rootCause = rootCause.getCause();
-        }
-
-        String message = rootCause.getMessage();
-
-        if (message == null || message.trim().isEmpty()) {
-            message = rootCause.toString();
-        }
-
-        return message;
-    }
-
-    public static String getFullErrorMessage(Throwable exception) {
-
-        if (exception == null) {
-            return "Unknown error occurred";
-        }
-
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-
-        exception.printStackTrace(pw);
-
-        return sw.toString();
-    }
 
     public Optional<DatabaseConfigEntity> getDatabase(Long id) {
         return databaseConfigRepository.findById(id);

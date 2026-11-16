@@ -2,6 +2,7 @@
 package com.mislbd.report_manager.service.admin;
 
 import com.mislbd.report_manager.entity.admin.JasperReportEntity;
+import com.mislbd.report_manager.exception.ExceptionUtils;
 import com.mislbd.report_manager.repository.admin.JasperReportRepository;
 
 import net.sf.jasperreports.engine.JasperCompileManager;
@@ -48,38 +49,65 @@ public class DatabaseSubReportService {
     public JasperReport compileReport(
             String mainReportFileName,
             Map<String, Object> parameters) throws Exception {
+        try {
 
-        if (parameters == null) {
-            throw new IllegalArgumentException(
-                    "Report parameters cannot be null"
+            if (parameters == null) {
+                throw new IllegalArgumentException(
+                        "Report parameters cannot be null"
+                );
+            }
+
+            Map<String, JasperReport> compiledReports =
+                    new HashMap<>();
+
+            Set<String> processingReports =
+                    new HashSet<>();
+
+            // Compile main report and nested subreports.
+            JasperReport mainReport = loadAndCompile(
+                    mainReportFileName,
+                    compiledReports,
+                    processingReports,
+                    parameters
             );
+
+            // Make compiled subreports available to the main report.
+            for (Map.Entry<String, JasperReport> entry : compiledReports.entrySet()) {
+                parameters.put(PARAM_PREFIX + entry.getKey(), entry.getValue());
+            }
+
+            return mainReport;
+
+        } catch (Exception e){
+            String errorMessage = ExceptionUtils.getFullErrorMessage(e);
+            throw new RuntimeException(errorMessage);
+        }
+    }
+
+
+
+    public static String getRootErrorMessage(Throwable exception) {
+
+        if (exception == null) {
+            return "Unknown error occurred";
         }
 
-        Map<String, JasperReport> compiledReports =
-                new HashMap<>();
+        Throwable rootCause = exception;
 
-        Set<String> processingReports =
-                new HashSet<>();
+        // Find the deepest cause safely
+        while (rootCause.getCause() != null
+                && rootCause.getCause() != rootCause) {
 
-        // Compile main report and nested subreports.
-        JasperReport mainReport = loadAndCompile(
-                mainReportFileName,
-                compiledReports,
-                processingReports,
-                parameters
-        );
-
-        // Make compiled subreports available to the main report.
-        for (Map.Entry<String, JasperReport> entry :
-                compiledReports.entrySet()) {
-
-            parameters.put(
-                    PARAM_PREFIX + entry.getKey(),
-                    entry.getValue()
-            );
+            rootCause = rootCause.getCause();
         }
 
-        return mainReport;
+        String message = rootCause.getMessage();
+
+        if (message == null || message.trim().isEmpty()) {
+            message = rootCause.toString();
+        }
+
+        return message;
     }
 
     /**

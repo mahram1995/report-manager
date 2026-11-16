@@ -3,7 +3,7 @@ spring:
   application:
     name: webapp
   datasource:
-    url: jdbc:oracle:thin:@localhost:1521:testdb
+    url: jdbc:oracle:thin:@localhost:1521:xe
     driver-class-name: oracle.jdbc.OracleDriver
     username: hims
     password: root
