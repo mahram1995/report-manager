@@ -59,12 +59,11 @@ public class JasperReportController {
                 saved.setReportContent(null);
 
                 savedReports.add(saved);
-            }
-            else if ("png".equalsIgnoreCase(extension)) {
+            } else  {
                 JasperReportDomain domain = new JasperReportDomain();
 
                 domain.setReportFileName(fileName);
-                domain.setDataSource(dataSource);
+                domain.setDataSource(null);
                 domain.setReportContent(file.getBytes());
 
                 JasperReportDomain saved = jasperReportService.save(domain);
@@ -73,11 +72,6 @@ public class JasperReportController {
                 saved.setReportContent(null);
 
                 savedReports.add(saved);
-            }
-            else {
-                throw new IllegalArgumentException(
-                        "Unsupported file format: " + fileName
-                );
             }
         }
 

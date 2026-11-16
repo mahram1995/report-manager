@@ -346,7 +346,7 @@ public class JasperReportServiceImpl implements JasperReportService {
 
                 if (dateValue.matches("\\d{4}-\\d{2}-\\d{2}")) {
                     try {
-                        java.util.Date parsedDate = sdf.parse(dateValue);
+                        Date parsedDate = sdf.parse(dateValue);
 
                         return new java.sql.Date(parsedDate.getTime());
 
@@ -378,8 +378,8 @@ public class JasperReportServiceImpl implements JasperReportService {
 
             Object value = entry.getValue();
 
-            if (value instanceof java.util.Date) {
-                result.put(entry.getKey(), sdf.format((java.util.Date) value));
+            if (value instanceof Date) {
+                result.put(entry.getKey(), sdf.format((Date) value));
             } else {
                 result.put(entry.getKey(), value);
             }
@@ -396,7 +396,7 @@ public class JasperReportServiceImpl implements JasperReportService {
         orginalRequest.setParameters(convertDateToString(request.getParameters()));
 
 
-        long auditLogId;
+        long auditLogId = 0;
 
         if (entity.isEmpty()) {
             throw new RuntimeException("File not Found: " + reportFileName);
@@ -571,7 +571,7 @@ public class JasperReportServiceImpl implements JasperReportService {
                     "NOT-SUCCESS",
                     null,
                     errorMessage,
-                    null
+                    auditLogId
             );
 
             throw new ReportExecutionException(
@@ -656,7 +656,7 @@ public class JasperReportServiceImpl implements JasperReportService {
         JasperReportAuditLogEntity entity;
 
         // Get existing audit record or create a new one
-        if (auditLogId != null) {
+        if (auditLogId != null && auditLogId>0) {
             entity = jasperReportErrorLogService.getAuditLogById(auditLogId);
         } else {
             entity = null;

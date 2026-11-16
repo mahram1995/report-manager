@@ -224,8 +224,7 @@ public class DatabaseSubReportService {
                 continue;
             }
 
-            String expressionText =
-                    imageExpression.getTextContent().trim();
+            String expressionText = imageExpression.getTextContent().trim().replace("repo:", "");
 
             // Extract static image filename.
             String imageFileName = expressionText
