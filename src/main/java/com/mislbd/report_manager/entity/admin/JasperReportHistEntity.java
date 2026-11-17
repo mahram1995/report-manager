@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.sql.Blob;
+import java.sql.Clob;
 
 @Getter
 @Setter
@@ -26,5 +27,9 @@ public class JasperReportHistEntity extends BaseEntity {
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "REPORT_CONTENT", nullable = false)
     private byte[] reportContent;
+    private Integer executionTimeoutSeconds;
+    private Clob sqlQueryForQrCode;
+    private Integer maxQrcodeScanLimit;
+    private Integer daysOfQrCodeExpiry;
 }
 

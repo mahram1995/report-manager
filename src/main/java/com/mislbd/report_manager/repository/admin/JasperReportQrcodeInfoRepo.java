@@ -1,0 +1,10 @@
+package com.mislbd.report_manager.repository.admin;
+
+import com.mislbd.report_manager.entity.admin.JasperReportQrCodeInfo;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface JasperReportQrcodeInfoRepo extends JpaRepository<JasperReportQrCodeInfo, Long> {
+    void deleteBySecurityToken(String securityToken);
+
+    JasperReportQrCodeInfo findBySecurityToken(String securityToken);
+}

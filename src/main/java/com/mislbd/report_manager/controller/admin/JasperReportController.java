@@ -27,6 +27,7 @@ public class JasperReportController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<List<JasperReportDomain>> save(
             @RequestParam("dataSource") String dataSource,
+            @RequestParam("executionTimeoutSeconds") Integer executionTimeoutSeconds,
             @RequestParam("files") MultipartFile[] files) throws Exception {
 
         List<JasperReportDomain> savedReports = new ArrayList<>();
@@ -52,6 +53,7 @@ public class JasperReportController {
                 domain.setReportFileName(fileName);
                 domain.setDataSource(dataSource);
                 domain.setReportContent(file.getBytes());
+                domain.setExecutionTimeoutSeconds(executionTimeoutSeconds);
 
                 JasperReportDomain saved = jasperReportService.save(domain);
 
@@ -97,6 +99,13 @@ public class JasperReportController {
 
         return ResponseEntity.ok(updated);
     }
+    @GetMapping("/verify-qrcode")
+    public ResponseEntity<Object> verifyQrcode(
+            @RequestParam("securityToken") String securityToken) {
+
+        return jasperReportService.verifyQrcode(securityToken);
+    }
+
 
     @GetMapping("/get-jasper-reports")
     public ResponseEntity<List<JasperReportDomain>> getJasperReports() {

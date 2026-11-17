@@ -54,6 +54,15 @@ dependencies {
 	implementation 'org.apache.poi:poi-ooxml:4.1.1'
 	implementation 'com.lowagie:itext:2.1.7'
 	implementation files('libs/jasper-1.0-SNAPSHOT.jar')
+	// Barcode4J runtime library QR Code support
+	implementation 'net.sf.barcode4j:barcode4j:2.1'
+	// ZXing QR Code support
+	implementation 'com.google.zxing:core:3.2.1'
+    // Apache Batik QR Code support
+	implementation('org.apache.xmlgraphics:batik-bridge:1.11') {
+		exclude group: 'xalan', module: 'xalan'
+		exclude group: 'xerces', module: 'xercesImpl'
+	}
 
 
 

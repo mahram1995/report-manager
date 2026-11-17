@@ -49,7 +49,6 @@ public class DatabaseSubReportService {
     public JasperReport compileReport(
             String mainReportFileName,
             Map<String, Object> parameters) throws Exception {
-        try {
 
             if (parameters == null) {
                 throw new IllegalArgumentException(
@@ -78,10 +77,7 @@ public class DatabaseSubReportService {
 
             return mainReport;
 
-        } catch (Exception e){
-            String errorMessage = ExceptionUtils.getFullErrorMessage(e);
-            throw new RuntimeException(errorMessage);
-        }
+
     }
 
 

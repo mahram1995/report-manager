@@ -13,6 +13,7 @@ import java.util.List;
 
 public interface JasperReportService {
     JasperReportDomain save(JasperReportDomain domain);
+    ResponseEntity<Object> verifyQrcode(String SecurityCode);
     List<JasperReportHistAuditProjection> getAuditList(String reportFileName);
     JasperReportDomain update(Long id, JasperReportDomain domain);
 

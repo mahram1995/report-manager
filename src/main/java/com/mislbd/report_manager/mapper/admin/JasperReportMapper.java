@@ -1,10 +1,12 @@
 package com.mislbd.report_manager.mapper.admin;
 
+import com.mislbd.report_manager.configuration.aopConfig.service.UtilityService;
 import com.mislbd.report_manager.domain.admin.JasperReportDomain;
 import com.mislbd.report_manager.entity.admin.JasperReportEntity;
 import com.mislbd.report_manager.entity.admin.JasperReportHistEntity;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
@@ -12,6 +14,11 @@ import java.util.Optional;
 public class JasperReportMapper {
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("dd-MMM-yyyy hh:mm:ss a");
+    private  final UtilityService utilityService ;
+
+    public JasperReportMapper(UtilityService utilityService) {
+        this.utilityService = utilityService;
+    }
 
     public JasperReportEntity domainToEntity(JasperReportDomain domain) {
 
@@ -25,6 +32,11 @@ public class JasperReportMapper {
         entity.setReportFileName(domain.getReportFileName());
         entity.setDataSource(domain.getDataSource());
         entity.setReportContent(domain.getReportContent());
+        entity.setExecutionTimeoutSeconds(domain.getExecutionTimeoutSeconds());
+        entity.setDaysOfQrCodeExpiry(domain.getDaysOfQrCodeExpiry());
+        entity.setMaxQrcodeScanLimit(domain.getMaxQrcodeScanLimit());
+        entity.setSqlQueryForQrCode(utilityService.jsonToClob(domain.getSqlQueryForQrCode()));
+
 
         return entity;
     }
@@ -40,6 +52,7 @@ public class JasperReportMapper {
         domain.setId(entity.getId());
         domain.setReportFileName(entity.getReportFileName());
         domain.setDataSource(entity.getDataSource());
+        domain.setExecutionTimeoutSeconds(entity.getExecutionTimeoutSeconds());
 
         domain.setCreateDate(
                 entity.getCreateDateTime() != null
@@ -61,6 +74,14 @@ public class JasperReportMapper {
         domain.setCreatedBy(entity.getCreatedBy());
         domain.setVerifyBy(entity.getVerifyBy());
         domain.setUpdateBy(entity.getUpdateBy());
+        domain.setDaysOfQrCodeExpiry(entity.getDaysOfQrCodeExpiry());
+        domain.setMaxQrcodeScanLimit(entity.getMaxQrcodeScanLimit());
+        domain.setSqlQueryForQrCode(
+                entity.getSqlQueryForQrCode() != null
+                        ? utilityService.clobToJson(entity.getSqlQueryForQrCode())
+                        .getBytes(StandardCharsets.UTF_8)
+                        : null
+        );
 
         return domain;
     }
@@ -74,6 +95,7 @@ public class JasperReportMapper {
         JasperReportHistEntity histEntity = new JasperReportHistEntity();
         histEntity.setReportFileName(data.getReportFileName());
         histEntity.setReportContent(data.getReportContent());
+        histEntity.setExecutionTimeoutSeconds(data.getExecutionTimeoutSeconds());
         histEntity.setDataSource(data.getDataSource());
         histEntity.setCreateAgent(data.getCreateAgent());
         histEntity.setCreateDate(data.getCreateDate());
@@ -90,15 +112,11 @@ public class JasperReportMapper {
         histEntity.setUpdateDate(data.getUpdateDate());
         histEntity.setUpdateTerminal(data.getUpdateTerminal());
         histEntity.setUpdateDateTime(data.getUpdateDateTime());
+        histEntity.setDaysOfQrCodeExpiry(data.getDaysOfQrCodeExpiry());
+        histEntity.setMaxQrcodeScanLimit(data.getMaxQrcodeScanLimit());
+        histEntity.setSqlQueryForQrCode(data.getSqlQueryForQrCode());
         return histEntity;
     }
 
-    public void updateEntity(
-            JasperReportDomain domain,
-            JasperReportEntity entity) {
 
-        entity.setReportFileName(domain.getReportFileName());
-        entity.setDataSource(domain.getDataSource());
-        entity.setReportContent(domain.getReportContent());
-    }
 }

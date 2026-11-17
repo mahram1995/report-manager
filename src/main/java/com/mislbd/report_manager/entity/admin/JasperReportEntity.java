@@ -4,10 +4,9 @@ import com.mislbd.report_manager.configuration.aopConfig.auditListener.AuditEnti
 import com.mislbd.report_manager.configuration.aopConfig.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 
-import java.sql.Blob;
+import java.sql.Clob;
+import java.util.Date;
 
 @Data
 @Entity
@@ -26,5 +25,9 @@ public class JasperReportEntity extends BaseEntity  {
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "REPORT_CONTENT", nullable = false)
     private byte[] reportContent;
+    private Integer executionTimeoutSeconds;
+    private Clob sqlQueryForQrCode;
+    private Integer maxQrcodeScanLimit;
+    private Integer daysOfQrCodeExpiry;
 }
 

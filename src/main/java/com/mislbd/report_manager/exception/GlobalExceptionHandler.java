@@ -18,7 +18,6 @@ public class GlobalExceptionHandler {
             RuntimeException ex) {
 
         Map<String, Object> response = new HashMap<>();
-        response.put("success", false);
         response.put("message", ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred");
 
         return ResponseEntity

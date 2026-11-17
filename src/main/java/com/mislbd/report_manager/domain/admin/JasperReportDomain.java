@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.sql.Clob;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -22,4 +23,8 @@ public class JasperReportDomain {
     private String verifyBy;
     private String updateBy;
     private byte[] reportContent;
+    private Integer executionTimeoutSeconds;
+    private byte[] sqlQueryForQrCode;
+    private Integer maxQrcodeScanLimit;
+    private Integer daysOfQrCodeExpiry;
 }

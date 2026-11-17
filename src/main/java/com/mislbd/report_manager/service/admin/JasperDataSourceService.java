@@ -10,6 +10,8 @@ public interface JasperDataSourceService {
     ResponseEntity<String> createDataSource(DatabaseConfigEntity data);
     ResponseEntity<String> updateDataSource(DatabaseConfigEntity data);
     ResponseEntity<String> testConnection(DatabaseConfigEntity data);
+    DatabaseConfigEntity getDataBase(Long dataBaseId);
+
 
     List<DatabaseConfigEntity> getDatabaseList();
 

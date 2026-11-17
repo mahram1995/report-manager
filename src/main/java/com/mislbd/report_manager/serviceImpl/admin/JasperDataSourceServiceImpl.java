@@ -91,6 +91,11 @@ public class JasperDataSourceServiceImpl implements JasperDataSourceService {
         }
     }
 
+    @Override
+    public DatabaseConfigEntity getDataBase(Long dataBaseId) {
+        return databaseConfigRepository.findById(dataBaseId).get();
+    }
+
 
     @Override
     public List<DatabaseConfigEntity> getDatabaseList() {

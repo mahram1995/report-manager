@@ -2,6 +2,7 @@ package com.mislbd.report_manager.serviceImpl.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mislbd.report_manager.configuration.aopConfig.service.CommonService;
+import com.mislbd.report_manager.configuration.aopConfig.service.UtilityService;
 import com.mislbd.report_manager.domain.admin.JasperReportDomain;
 import com.mislbd.report_manager.domain.admin.JasperReportRequestDomain;
 import com.mislbd.report_manager.entity.admin.DatabaseConfigEntity;
@@ -16,10 +17,24 @@ import com.mislbd.report_manager.repository.admin.DatabaseConfigRepository;
 import com.mislbd.report_manager.repository.admin.JasperReportHistRepository;
 import com.mislbd.report_manager.repository.admin.JasperReportRepository;
 import com.mislbd.report_manager.service.admin.DatabaseSubReportService;
+import com.mislbd.report_manager.service.admin.JasperQrcodeGenerationService;
 import com.mislbd.report_manager.service.admin.JasperReportAuditLogService;
 import com.mislbd.report_manager.service.admin.JasperReportService;
+import com.mislbd.report_manager.utility.AppConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.transaction.Transactional;
+
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.fill.AsynchronousFillHandle;
+import net.sf.jasperreports.engine.fill.AsynchronousFilllListener;
+
+import java.sql.Connection;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import lombok.RequiredArgsConstructor;
 import net.sf.jasperreports.engine.*;
@@ -63,6 +78,7 @@ public class JasperReportServiceImpl implements JasperReportService {
     private final CommonService commonService;
     private final DatabaseConfigRepository databaseConfigRepository;
     private final DatabaseSubReportService subReportService;
+    private final JasperQrcodeGenerationService qrcodeGenerationService;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -96,10 +112,14 @@ public class JasperReportServiceImpl implements JasperReportService {
         }
 
         JasperReportEntity entity = jasperReportMapper.domainToEntity(domain);
-
         JasperReportEntity savedEntity = jasperReportRepository.save(entity);
 
         return jasperReportMapper.entityToDomain(savedEntity);
+    }
+
+    @Override
+    public ResponseEntity<Object> verifyQrcode(String securityCode) {
+        return qrcodeGenerationService.verifyQrcode(securityCode);
     }
 
 
@@ -136,6 +156,10 @@ public class JasperReportServiceImpl implements JasperReportService {
             entity.setUpdateDateTime(LocalDateTime.now());
             entity.setUpdateTerminal(commonService.getTerminal());
             entity.setUpdateAgent(commonService.getUserAgent());
+            entity.setExecutionTimeoutSeconds(domain.getExecutionTimeoutSeconds());
+            entity.setReportFileName(domain.getReportFileName());
+            entity.setDataSource(domain.getDataSource());
+            entity.setReportContent(domain.getReportContent());
         }
 
         if (domain.getReportContent() == null
@@ -143,9 +167,6 @@ public class JasperReportServiceImpl implements JasperReportService {
             throw new IllegalArgumentException(
                     "Report content is required");
         }
-
-
-        jasperReportMapper.updateEntity(domain, entity);
 
         JasperReportEntity updatedEntity = jasperReportRepository.save(entity);
 
@@ -392,36 +413,64 @@ public class JasperReportServiceImpl implements JasperReportService {
     @Override
     public ResponseEntity<byte[]> runReport(JasperReportRequestDomain request) throws IOException, JRException, SQLException {
         String reportFileName = request.getJasperFileName();
-        Optional<JasperReportEntity> entity = jasperReportRepository.findByReportFileName(reportFileName);
+        JasperReportEntity entity = jasperReportRepository.findByReportFileName(reportFileName).get();
         JasperReportRequestDomain orginalRequest=request;
         orginalRequest.setParameters(convertDateToString(request.getParameters()));
 
+        Integer defaultTimeoutSeconds = Integer.valueOf(AppConfig.getConfigurationValue("DEFAULT_REPORT_EXECUTION_TIMEOUT_SECOND"));
+        String  qrcodeUrl= AppConfig.getConfigurationValue("QRCODE_URL_FOR_VALIDATE_DATA");
+
+        String securityTokenForQrcode = null;
+
+        Integer reportExecutionTimeout = entity.getExecutionTimeoutSeconds();
+
+        int executionTimeoutSeconds =
+                (reportExecutionTimeout != null && reportExecutionTimeout > 0)
+                        ? reportExecutionTimeout
+                        : defaultTimeoutSeconds;
 
         long auditLogId = 0;
 
-        if (entity.isEmpty()) {
+        if (entity==null) {
             throw new RuntimeException("File not Found: " + reportFileName);
         }
         request.setParameters(convertDateParameters(request.getParameters()));
 
-        if (entity.get().getReportContent() == null
-                || entity.get().getReportContent().length == 0) {
+        if (entity.getReportContent() == null
+                || entity.getReportContent().length == 0) {
 
             throw new RuntimeException(
                     "Jasper report content is empty: "
                             + reportFileName);
         }
 
-        byte[] reportBytes = entity.get().getReportContent();
+        byte[] reportBytes = entity.getReportContent();
 
 
         // Get database connection
-        DatabaseConfigEntity db = getDatabase(Long.valueOf(entity.get().getDataSource())).orElseThrow(() -> new RuntimeException("Database not found"));
-        DataSource dataSource = createDataSource(db);
+
+        DataSource dataSource = AppConfig.createDataSource(Long.valueOf(entity.getDataSource()));
+
+
+        Clob qrCodeSql = entity.getSqlQueryForQrCode();
+
+        if (qrCodeSql != null && qrCodeSql.length() > 0) {
+
+            securityTokenForQrcode = qrcodeGenerationService.generateQrcode(
+                    request.getParameters(),
+                    entity,
+                    dataSource
+            );
+        }
+
         // Get parameters
         Map<String, Object> reportParameters = request.getParameters() != null
                 ? new HashMap<>(request.getParameters())
                 : new HashMap<>();
+
+        if (securityTokenForQrcode != null && !securityTokenForQrcode.isBlank()) {
+            reportParameters.put("PQR_CODE_URL", qrcodeUrl + securityTokenForQrcode);
+        }
 
 
         try (Connection connection = dataSource.getConnection()) {
@@ -443,7 +492,15 @@ public class JasperReportServiceImpl implements JasperReportService {
             );
 
 
-            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, reportParameters, connection);
+           // JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, reportParameters, connection);
+
+            // this is call for stop the execution if exceed the execution time;
+            JasperPrint jasperPrint = fillReportWithTimeout(
+                    jasperReport,
+                    reportParameters,
+                    connection,
+                    executionTimeoutSeconds
+            );
 
             if ("xls".equalsIgnoreCase(request.getReportFormat())) {
                 JRXlsExporter exporter = new JRXlsExporter();
@@ -562,9 +619,12 @@ public class JasperReportServiceImpl implements JasperReportService {
             return ResponseEntity.ok(reportData);
 
         } catch (JRException e) {
-
+            if (securityTokenForQrcode != null && !securityTokenForQrcode.isBlank()) {
+                qrcodeGenerationService.deletedQrcodeInfo(securityTokenForQrcode);
+            }
             String errorMessage = ExceptionUtils.getFullErrorMessage(e);
             String errorShortMessage = ExceptionUtils.getRootErrorMessage(e);
+
 
             // Save audit log
             Long errorId = saveAuditData(
@@ -579,6 +639,9 @@ public class JasperReportServiceImpl implements JasperReportService {
                     errorShortMessage + " Error Log id: " + errorId
             );
         } catch (SQLException e) {
+            if (securityTokenForQrcode != null && !securityTokenForQrcode.isBlank()) {
+              qrcodeGenerationService.deletedQrcodeInfo(securityTokenForQrcode);
+            }
             String errorMessage = ExceptionUtils.getFullErrorMessage(e);
             String errorShortMessage = ExceptionUtils.getRootErrorMessage(e);
 
@@ -594,7 +657,27 @@ public class JasperReportServiceImpl implements JasperReportService {
             throw new ReportExecutionException(
                     errorShortMessage + " Error Log id: " + errorId
             );
-        } catch (Exception e) {
+        } catch (ReportExecutionException e) {
+            if (securityTokenForQrcode != null && !securityTokenForQrcode.isBlank()) {
+                qrcodeGenerationService.deletedQrcodeInfo(securityTokenForQrcode);
+            }
+            String errorMessage = ExceptionUtils.getFullErrorMessage(e);
+            String errorShortMessage = ExceptionUtils.getRootErrorMessage(e);
+            // Save timeout information
+            saveAuditData(
+                    request,
+                    "TIMEOUT",
+                    null,
+                    e.getMessage(),
+                    auditLogId
+            );
+
+            throw new ReportExecutionException(e.getMessage());
+
+        }  catch (Exception e) {
+            if (securityTokenForQrcode != null && !securityTokenForQrcode.isBlank()) {
+                qrcodeGenerationService.deletedQrcodeInfo(securityTokenForQrcode);
+            }
             String errorMessage = ExceptionUtils.getFullErrorMessage(e);
             String errorShortMessage = ExceptionUtils.getRootErrorMessage(e);
 
@@ -613,31 +696,6 @@ public class JasperReportServiceImpl implements JasperReportService {
         }
     }
 
-
-
-
-
-    public Optional<DatabaseConfigEntity> getDatabase(Long id) {
-        return databaseConfigRepository.findById(id);
-
-
-    }
-
-    private DataSource createDataSource(DatabaseConfigEntity db) {
-
-        HikariDataSource dataSource = new HikariDataSource();
-
-        dataSource.setJdbcUrl(db.getUrl());
-        dataSource.setUsername(db.getUsername());
-        dataSource.setPassword(db.getPassword());
-        dataSource.setDriverClassName(db.getDriverClass());
-
-        // For report execution
-        dataSource.setMaximumPoolSize(5);
-        dataSource.setMinimumIdle(1);
-
-        return dataSource;
-    }
 
     ;
 
@@ -713,6 +771,103 @@ public class JasperReportServiceImpl implements JasperReportService {
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to convert parameters to JSON CLOB", e);
+        }
+    }
+
+    public JasperPrint fillReportWithTimeout(
+            JasperReport jasperReport,
+            Map<String, Object> parameters,
+            Connection connection,
+            long timeoutSeconds) throws Exception {
+
+        CountDownLatch completionLatch = new CountDownLatch(1);
+
+        AtomicReference<JasperPrint> result = new AtomicReference<>();
+
+        AtomicReference<Throwable> executionError = new AtomicReference<>();
+
+        AtomicReference<Boolean> cancelled =
+                new AtomicReference<>(false);
+
+        AsynchronousFillHandle fillHandle = AsynchronousFillHandle.createHandle(
+                        jasperReport,
+                        parameters,
+                        connection
+                );
+
+        fillHandle.addListener(new AsynchronousFilllListener() {
+
+            @Override
+            public void reportFinished(JasperPrint jasperPrint) {
+                result.set(jasperPrint);
+                completionLatch.countDown();
+            }
+
+            @Override
+            public void reportFillError(Throwable throwable) {
+                executionError.set(throwable);
+                completionLatch.countDown();
+            }
+
+            @Override
+            public void reportCancelled() {
+                cancelled.set(true);
+                completionLatch.countDown();
+            }
+        });
+
+        try {
+
+            // Start asynchronous report filling
+            fillHandle.startFill();
+
+            // Wait for the configured execution time
+            boolean completed = completionLatch.await(
+                    timeoutSeconds,
+                    TimeUnit.SECONDS
+            );
+
+            // Time limit exceeded
+            if (!completed) {
+
+                // Cancel the current report and SQL execution
+                fillHandle.cancellFill();
+
+                // Wait briefly for cancellation notification
+                completionLatch.await(5, TimeUnit.SECONDS);
+
+                throw new ReportExecutionException (
+                        "Report execution exceeded the maximum allowed time of "
+                                + timeoutSeconds + " seconds. SQL execution was cancelled."
+                );
+            }
+
+            // Check report execution errors
+            if (executionError.get() != null) {
+                throw new JRException(
+                        "Report execution failed",
+                        executionError.get()
+                );
+            }
+
+            if (cancelled.get()) {
+                throw new ReportExecutionException(
+                        "Report execution was cancelled."
+                );
+            }
+
+            return result.get();
+
+        } catch (InterruptedException e) {
+
+            fillHandle.cancellFill();
+
+            Thread.currentThread().interrupt();
+
+            throw new RuntimeException(
+                    "Report execution was interrupted.",
+                    e
+            );
         }
     }
 
