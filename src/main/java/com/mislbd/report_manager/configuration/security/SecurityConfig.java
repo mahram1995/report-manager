@@ -44,16 +44,18 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securedApiChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/admin/auth/**")
+                .securityMatcher("/admin/**")
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Public APIs
                         .requestMatchers(
                                 "/admin/auth/login",
-                                "/admin/auth/register",
+                                "/admin/auth/logout",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/admin/jasper-reports/verify-qrcode"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()

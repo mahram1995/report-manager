@@ -22,4 +22,5 @@ public class JasperReportQrCodeInfo {
     private Date expiryDate;
     private Clob parameters;
     private Clob sqlQueryForQrCode;
+    private String uuid;
 }

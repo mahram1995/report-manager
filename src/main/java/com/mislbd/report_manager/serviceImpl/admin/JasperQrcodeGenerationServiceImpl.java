@@ -1,12 +1,12 @@
 package com.mislbd.report_manager.serviceImpl.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mislbd.report_manager.configuration.aopConfig.service.UtilityService;
 import com.mislbd.report_manager.entity.admin.JasperReportEntity;
 import com.mislbd.report_manager.entity.admin.JasperReportQrCodeInfo;
 import com.mislbd.report_manager.repository.admin.JasperReportQrcodeInfoRepo;
 import com.mislbd.report_manager.service.admin.JasperQrcodeGenerationService;
 import com.mislbd.report_manager.utility.AppConfig;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -18,6 +18,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.sql.DataSource;
 import javax.sql.rowset.serial.SerialClob;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.sql.Clob;
 import java.util.*;
 
@@ -26,11 +27,13 @@ public class JasperQrcodeGenerationServiceImpl implements JasperQrcodeGeneration
 
     private final JasperReportQrcodeInfoRepo qrcodeInfoRepo;
     private final ObjectMapper objectMapper;
+    private final UtilityService utilityService;
 
 
-    public JasperQrcodeGenerationServiceImpl(JasperReportQrcodeInfoRepo qrcodeInfoRepo, ObjectMapper objectMapper) {
+    public JasperQrcodeGenerationServiceImpl(JasperReportQrcodeInfoRepo qrcodeInfoRepo, ObjectMapper objectMapper, UtilityService utilityService) {
         this.qrcodeInfoRepo = qrcodeInfoRepo;
         this.objectMapper = objectMapper;
+        this.utilityService = utilityService;
     }
 
     @Transactional
@@ -86,13 +89,16 @@ public class JasperQrcodeGenerationServiceImpl implements JasperQrcodeGeneration
             List<Map<String, Object>> queryResult = jdbcTemplate.queryForList(sqlQuery, reportParams);
 
             // 7. Convert SQL result into JSON
-            String jsonData = objectMapper.writeValueAsString(queryResult);
+            Object result = queryResult.isEmpty() ? null : queryResult.get(0);
+
+            String jsonData = objectMapper.writeValueAsString(result);
 
 
             // 8. Create QR Code information entity
             JasperReportQrCodeInfo entity = new JasperReportQrCodeInfo();
             entity.setSecurityToken(securityToken);
             entity.setNumberOfScan(0);
+            entity.setUuid(uuid);
 
             if(maxQrcodeScanLimit>reportEntity.getMaxQrcodeScanLimit()){
                 entity.setScanLimit(maxQrcodeScanLimit);
@@ -129,25 +135,75 @@ public class JasperQrcodeGenerationServiceImpl implements JasperQrcodeGeneration
     public ResponseEntity<Object> verifyQrcode(String securityToken) {
 
         try {
-            JasperReportQrCodeInfo entity=qrcodeInfoRepo.findBySecurityToken(securityToken);
-            Clob clob = entity.getValue();
 
-            if (clob == null) {
-                return ResponseEntity.notFound().build();
+            if (securityToken == null || securityToken.isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message", "Security token is required."));
             }
 
-            String value = clob.getSubString(1, (int) clob.length());
-            if(entity.getNumberOfScan()==entity.getScanLimit()){
-                throw new RuntimeException("Scan Limit exceed");
-            }
-            if (entity.getExpiryDate() != null
-                    && entity.getExpiryDate().compareTo(new Date()) < 0) {
+            String[] tokenParts = securityToken.split("\\.", -1);
 
-                throw new RuntimeException("QR Code is expired");
+            if (tokenParts.length != 2) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message", "Invalid security token."));
             }
-            entity.setNumberOfScan(entity.getNumberOfScan()+1);
-            qrcodeInfoRepo.save(entity);
-            return ResponseEntity.ok(value);
+
+            String uuid = tokenParts[0];
+
+            JasperReportQrCodeInfo  entity = qrcodeInfoRepo.findByUuid(uuid);
+
+            if (entity == null) {
+                return ResponseEntity.status(404)
+                        .body(Map.of("message", "QR Code not found."));
+            }
+           // JasperReportQrCodeInfo entity=qrcodeInfoRepo.findBySecurityToken(securityToken);
+
+            if (!uuid.equals(entity.getUuid())) {
+                throw new RuntimeException(
+                        "QR Code signature is invalid or tampered."
+                );
+            }
+
+            if (entity != null) {
+                Clob clob = entity.getValue();
+                if (clob == null) {
+                    return ResponseEntity.notFound().build();
+                }
+
+                // Retrieve original JSON from database
+                String parameterJson = utilityService.clobToJson( entity.getParameters());
+
+                // Verify signature
+                boolean valid = verifySignature(
+                        securityToken,
+                        parameterJson
+                );
+
+                if (!valid) {
+                    return ResponseEntity.status(403)
+                            .body(Map.of("message", "QR Code signature is invalid or tampered."));
+                }
+
+                String value = clob.getSubString(1, (int) clob.length());
+                if(entity.getNumberOfScan()==entity.getScanLimit()){
+                    throw new RuntimeException("Scan Limit exceed");
+                }
+                if (entity.getExpiryDate() != null
+                        && entity.getExpiryDate().compareTo(new Date()) < 0) {
+
+                    throw new RuntimeException("QR Code is expired");
+                }
+                entity.setNumberOfScan(entity.getNumberOfScan()+1);
+                qrcodeInfoRepo.save(entity);
+                return ResponseEntity.ok(value);
+
+            } else {
+
+                throw new RuntimeException("Security Code is Invalid. Please enter correct security code");
+
+            }
+
+
 
         } catch (Exception e) {
              throw new RuntimeException( e.getMessage());
@@ -186,5 +242,49 @@ public class JasperQrcodeGenerationServiceImpl implements JasperQrcodeGeneration
         );
 
         return HexFormat.of().formatHex(hash);
+    }
+
+
+    private boolean verifySignature(
+            String securityToken,
+            String parameterJson
+    ) throws Exception {
+
+        if (securityToken == null || parameterJson == null) {
+            return false;
+        }
+
+        String[] tokenParts = securityToken.split("\\.", -1);
+
+        // Token must contain exactly UUID.SIGNATURE
+        if (tokenParts.length != 2) {
+            return false;
+        }
+
+        String uuid = tokenParts[0];
+        String receivedSignature = tokenParts[1];
+
+        // Validate UUID
+        try {
+            UUID.fromString(uuid);
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+
+        // Recalculate signature
+        String data = uuid + "|" + parameterJson;
+
+        String expectedSignature = generateSignature(data);
+
+        try {
+            byte[] receivedBytes = HexFormat.of().parseHex(receivedSignature);
+            byte[] expectedBytes = HexFormat.of().parseHex(expectedSignature);
+
+            // Constant-time comparison
+            return MessageDigest.isEqual(expectedBytes, receivedBytes);
+
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 }

@@ -7,4 +7,6 @@ public interface JasperReportQrcodeInfoRepo extends JpaRepository<JasperReportQr
     void deleteBySecurityToken(String securityToken);
 
     JasperReportQrCodeInfo findBySecurityToken(String securityToken);
+
+    JasperReportQrCodeInfo findByUuid(String uuid);
 }
