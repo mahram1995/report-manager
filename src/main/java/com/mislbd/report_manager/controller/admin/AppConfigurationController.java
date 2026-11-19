@@ -58,10 +58,9 @@ public class AppConfigurationController {
     /**
      * Get application configurations
      */
-    @PostMapping("/get")
-    public ResponseEntity<List<AppConfigurationEntity>> getAppConfiguration(
-            @RequestBody AppConfigurationEntity entity) {
+    @GetMapping("/get")
+    public ResponseEntity<List<AppConfigurationEntity>> getAppConfiguration() {
 
-        return appConfigurationService.getAppConfiguration(entity);
+        return appConfigurationService.getAppConfiguration();
     }
 }

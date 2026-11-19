@@ -708,6 +708,7 @@ public class JasperReportServiceImpl implements JasperReportService {
             Long auditLogId
     ) throws SQLException {
 
+
         JasperReportAuditLogEntity entity;
 
         // Get existing audit record or create a new one
@@ -751,11 +752,19 @@ public class JasperReportServiceImpl implements JasperReportService {
         entity.setTerminal(commonService.getTerminal());
         entity.setUserClient(commonService.getUserAgent());
         entity.setStatus(status);
-        entity.setReportData(reportData);
+
         entity.setEntryDate(new Date());
         entity.setReportFormat(request.getReportFormat());
         if(status=="PROCESSING"){
             entity.setParameter(convertMapToClob(request.getParameters()));
+        }else{
+            boolean isSaveReportData = Boolean.parseBoolean(
+                    AppConfig.getConfigurationValue("IS_GENERATED_JASPER_REPORT_SAVE")
+            );
+
+            if (isSaveReportData) {
+                entity.setReportData(reportData);
+            }
         }
 
 

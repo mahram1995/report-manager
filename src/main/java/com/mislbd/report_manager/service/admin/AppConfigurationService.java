@@ -9,5 +9,5 @@ public interface AppConfigurationService {
     public String getAppConfigurationValue(String itemName);
     public ResponseEntity<AppConfigurationEntity> save(AppConfigurationEntity entity);
     public ResponseEntity<AppConfigurationEntity> update(AppConfigurationEntity entity);
-    public ResponseEntity<List<AppConfigurationEntity>> getAppConfiguration(AppConfigurationEntity entity);
+    public ResponseEntity<List<AppConfigurationEntity>> getAppConfiguration();
 }

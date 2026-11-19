@@ -76,63 +76,79 @@ public class JasperReportAuditLogServiceImpl implements JasperReportAuditLogServ
     @Override
     public ResponseEntity<byte[]> getReport(Long auditLogId) {
 
-            JasperReportAuditLogEntity entity = jasperReportErrorLogRepo
-                    .findById(auditLogId)
-                    .orElseThrow(() -> new RuntimeException("Audit log not found"));
+            try {
+                JasperReportAuditLogEntity entity = jasperReportErrorLogRepo
+                        .findById(auditLogId)
+                        .orElseThrow(() -> new RuntimeException("Audit log not found"));
 
 
-            byte[] reportData = entity.getReportData();
+                byte[] reportData = entity.getReportData();
 
-            String fileName = entity.getReportFileName().split("\\.")[0]+"."+ entity.getReportFormat();
+                if (reportData == null || reportData.length == 0) {
+                    throw new RuntimeException("Report data not found.");
+                }
 
-            return ResponseEntity.ok()
-                    .header(
-                            HttpHeaders.CONTENT_DISPOSITION,
-                            ContentDisposition.attachment()
-                                    .filename(fileName, StandardCharsets.UTF_8)
-                                    .build()
-                                    .toString()
-                    )
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .contentLength(reportData.length)
-                    .body(reportData);
+                String fileName = entity.getReportFileName().split("\\.")[0]+"."+ entity.getReportFormat();
+
+                return ResponseEntity.ok()
+                        .header(
+                                HttpHeaders.CONTENT_DISPOSITION,
+                                ContentDisposition.attachment()
+                                        .filename(fileName, StandardCharsets.UTF_8)
+                                        .build()
+                                        .toString()
+                        )
+                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                        .contentLength(reportData.length)
+                        .body(reportData);
+            }catch (Exception e){
+                throw new RuntimeException(e.getMessage());
+            }
 
     };
 
     @Override
     public ResponseEntity<String> getError(Long auditLogId) {
 
-        JasperReportAuditLogEntity entity = jasperReportErrorLogRepo
-                .findById(auditLogId)
-                .orElseThrow(() -> new RuntimeException("Audit log not found"));
+       try {
+           JasperReportAuditLogEntity entity = jasperReportErrorLogRepo
+                   .findById(auditLogId)
+                   .orElseThrow(() -> new RuntimeException("Audit log not found"));
 
-        Clob error = entity.getError();
+           Clob error = entity.getError();
 
-        String errorMessage = "";
+           if (error == null || error.length() == 0) {
+               throw new RuntimeException("Error data not found.");
+           }
 
-        try {
-            if (error != null) {
-                errorMessage = error.getSubString(1, (int) error.length());
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to read error log", e);
-        }
+           String errorMessage = "";
 
-        String reportName = entity.getReportFileName() != null
-                ? entity.getReportFileName().split("\\.")[0]
-                : "error_log";
+           try {
+               if (error != null) {
+                   errorMessage = error.getSubString(1, (int) error.length());
+               }
+           } catch (SQLException e) {
+               throw new RuntimeException("Failed to read error log", e);
+           }
 
-        String fileName = reportName + "_ERROR.txt";
+           String reportName = entity.getReportFileName() != null
+                   ? entity.getReportFileName().split("\\.")[0]
+                   : "error_log";
 
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment()
-                                .filename(fileName, StandardCharsets.UTF_8)
-                                .build()
-                                .toString()
-                )
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(errorMessage);
+           String fileName = reportName + "_ERROR.txt";
+
+           return ResponseEntity.ok()
+                   .header(
+                           HttpHeaders.CONTENT_DISPOSITION,
+                           ContentDisposition.attachment()
+                                   .filename(fileName, StandardCharsets.UTF_8)
+                                   .build()
+                                   .toString()
+                   )
+                   .contentType(MediaType.TEXT_PLAIN)
+                   .body(errorMessage);
+       }catch (Exception e){
+           throw new RuntimeException(e.getMessage());
+       }
     }
 }

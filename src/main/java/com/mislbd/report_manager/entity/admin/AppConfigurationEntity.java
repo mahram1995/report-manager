@@ -18,4 +18,6 @@ public class AppConfigurationEntity {
     private String description;
     private String expectedValue;
     private String actualValue;
+    private Boolean isChangeAble;
+    private Boolean isVisible;
 }

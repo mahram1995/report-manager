@@ -24,16 +24,22 @@ public class AppConfigurationServiceImpl implements AppConfigurationService {
 
     @Override
     public ResponseEntity<AppConfigurationEntity> save(AppConfigurationEntity entity) {
-        if(entity.getName().isEmpty()){
-            throw new RuntimeException("Name Can't be Null");
-        }
-        if(entity.getDescription().isEmpty()){
-            throw new RuntimeException("Description Can't be Null");
-        }
-        if(entity.getExpectedValue().isEmpty()){
-            throw new RuntimeException("Excepted Value Can't be Null");
-        }
-        return ResponseEntity.ok( repository.save(entity));
+       try{
+           if(entity.getName().isEmpty()){
+           throw new RuntimeException("Name Can't be Null");
+           }
+           if(entity.getDescription().isEmpty()){
+               throw new RuntimeException("Description Can't be Null");
+           }
+           if(entity.getExpectedValue().isEmpty()){
+               throw new RuntimeException("Excepted Value Can't be Null");
+           }
+           entity.setIsChangeAble(true);
+           entity.setIsVisible(true);
+           return ResponseEntity.ok( repository.save(entity));}
+       catch (Exception e){
+           throw  new RuntimeException(e.getMessage());
+       }
     }
 
     @Override
@@ -51,7 +57,7 @@ public class AppConfigurationServiceImpl implements AppConfigurationService {
     }
 
     @Override
-    public ResponseEntity<List<AppConfigurationEntity>> getAppConfiguration(AppConfigurationEntity entity) {
+    public ResponseEntity<List<AppConfigurationEntity>> getAppConfiguration() {
         return ResponseEntity.ok(repository.findAll());
     }
 }
