@@ -15,7 +15,8 @@ public class JasperReportSchedulerMapper {
 
         domain.setId(entity.getId());
         domain.setReportFileName(entity.getReportFileName());
-
+        domain.setReportFormat(entity.getReportFormat());
+        domain.setReportParameters(entity.getReportParameters());
         domain.setEmailAddressTo(entity.getEmailAddressTo());
         domain.setEmailAddressCc(entity.getEmailAddressCc());
         domain.setIsSendEmailSeparately(entity.getIsSendEmailSeparately());
@@ -50,7 +51,7 @@ public class JasperReportSchedulerMapper {
         entity.setId(domain.getId());
         entity.setReportFileName(domain.getReportFileName());
         entity.setReportFormat(domain.getReportFormat());
-
+        entity.setReportParameters(domain.getReportParameters());
         entity.setEmailAddressTo(domain.getEmailAddressTo());
         entity.setEmailAddressCc(domain.getEmailAddressCc());
         entity.setIsSendEmailSeparately(domain.getIsSendEmailSeparately());

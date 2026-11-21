@@ -13,7 +13,7 @@ public class JasperReportSchedulerDomain {
 
     private String reportFileName;
     private String reportFormat;
-
+    private String reportParameters;
     private String emailAddressTo;
     private String emailAddressCc;
 
@@ -51,4 +51,5 @@ public class JasperReportSchedulerDomain {
 
     private String lastStatus;
     private String lastError;
+
 }

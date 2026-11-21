@@ -4,15 +4,15 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mislbd.report_manager.domain.admin.JasperReportRequestDomain;
 import com.mislbd.report_manager.domain.admin.JasperReportSchedulerDomain;
+import com.mislbd.report_manager.entity.admin.JasperReportScheduleExecutionEntity;
 import com.mislbd.report_manager.entity.admin.JasperReportSchedulerEntity;
 import com.mislbd.report_manager.mapper.admin.JasperReportSchedulerMapper;
+import com.mislbd.report_manager.repository.admin.JasperReportSchedulerHistoryRepository;
 import com.mislbd.report_manager.repository.admin.JasperReportSchedulerRepository;
-import com.mislbd.report_manager.service.admin.JasperReportEmailService;
-import com.mislbd.report_manager.service.admin.JasperReportSchedulerHistoryService;
-import com.mislbd.report_manager.service.admin.JasperReportSchedulerService;
-import com.mislbd.report_manager.service.admin.JasperReportService;
+import com.mislbd.report_manager.service.admin.*;
 import com.mislbd.report_manager.utility.ScheduleCalculator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,22 +32,9 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
     private final JasperReportEmailService reportEmailService;
     private  final ObjectMapper objectMapper;
     private final JasperReportService reportService;
+    private  final JasperReportSchedulerHistoryRepository scheduleLogRepo;
 
-    @Override
-    public ResponseEntity<Object> saveSchedule(JasperReportSchedulerEntity entity) {
-        LocalDateTime now = LocalDateTime.now();
-       try {
 
-           entity.setIsActive(true);
-
-           entity.setNextRunAt(ScheduleCalculator.calculateNextRun(entity, now.minusSeconds(1)));
-           repository.save(entity);
-       }catch (Exception e){
-           throw new RuntimeException(e.getMessage());
-       }
-
-        return ResponseEntity.ok("Schedule are create for "+ entity.getReportFileName());
-    }
 
     public void executeDueReports() {
 
@@ -63,7 +50,7 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
     }
 
     @Override
-    public ResponseEntity<String> checkReportSchedule(Long scheduleId) {
+    public ResponseEntity<Object> checkReportSchedule(Long scheduleId) {
 
         try{
             executeSingleSchedule(repository.findById(scheduleId).get());
@@ -85,9 +72,6 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
         LocalDateTime startTime = LocalDateTime.now();
 
         try {
-
-
-
             String reportParameters = schedule.getReportParameters();
             Map<String, Object> parameters = new HashMap<>();
             if (reportParameters != null && !reportParameters.isBlank()) {
@@ -204,16 +188,13 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
     }
 
     public JasperReportSchedulerDomain update(
-            Long id,
             JasperReportSchedulerDomain domain
     ) {
+        long id=domain.getId();
 
         JasperReportSchedulerEntity existing =
                 repository.findById(id)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Scheduler not found: " + id
-                                ));
+                        .orElseThrow(() -> new IllegalArgumentException(    "Scheduler not found: " + id  ));
 
         domain.setId(id);
 
@@ -307,6 +288,11 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
         return mapper.toDomain(repository.save(entity));
     }
 
+    @Override
+    public List<JasperReportScheduleExecutionEntity> getScheduleExecutionLog() {
+        return scheduleLogRepo.findAll(Sort.by(Sort.Direction.DESC, "id"));
+    }
+
     private JasperReportSchedulerEntity getEntity(Long id) {
 
         return repository.findById(id)
@@ -315,6 +301,7 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
                                 "Scheduler not found: " + id
                         ));
     }
+
 
     private void validate(
             JasperReportSchedulerDomain donaim
