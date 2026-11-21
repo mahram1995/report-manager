@@ -8,7 +8,7 @@ import java.sql.Clob;
 import java.sql.Connection;
 
 public interface JasperQrcodeGenerationService {
-    String generateQrcode(Object parameter, JasperReportEntity reportEntity, DataSource dataSource);
+    String generateQrcode(Object parameter, JasperReportEntity reportEntity, DataSource dataSource, Long reportAuditId);
     void  deletedQrcodeInfo(String securityToken);
 
     ResponseEntity<Object> verifyQrcode(String securityCode);

@@ -459,7 +459,8 @@ public class JasperReportServiceImpl implements JasperReportService {
             securityTokenForQrcode = qrcodeGenerationService.generateQrcode(
                     request.getParameters(),
                     entity,
-                    dataSource
+                    dataSource,
+                    auditLogId
             );
         }
 

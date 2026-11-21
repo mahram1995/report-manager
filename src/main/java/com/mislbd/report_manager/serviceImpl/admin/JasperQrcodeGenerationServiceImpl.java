@@ -40,7 +40,8 @@ public class JasperQrcodeGenerationServiceImpl implements JasperQrcodeGeneration
     public String generateQrcode(
             Object parameter,
             JasperReportEntity reportEntity,
-            DataSource dataSource) {
+            DataSource dataSource,
+            Long reportAuditId) {
 
         try {
             Integer  qrcodeExpiryDay= Integer.valueOf(AppConfig.getConfigurationValue("NUMBER_OF_DEFAULT_QRCODE_EXPIRY_DAY"));
@@ -99,6 +100,8 @@ public class JasperQrcodeGenerationServiceImpl implements JasperQrcodeGeneration
             entity.setSecurityToken(securityToken);
             entity.setNumberOfScan(0);
             entity.setUuid(uuid);
+            entity.setReportFileName(reportEntity.getReportFileName());
+            entity.setAuditLogId(reportAuditId);
 
             if(maxQrcodeScanLimit>reportEntity.getMaxQrcodeScanLimit()){
                 entity.setScanLimit(maxQrcodeScanLimit);

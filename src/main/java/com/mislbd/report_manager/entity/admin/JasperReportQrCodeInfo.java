@@ -23,4 +23,6 @@ public class JasperReportQrCodeInfo {
     private Clob parameters;
     private Clob sqlQueryForQrCode;
     private String uuid;
+    private String reportFileName;
+    private Long auditLogId;
 }

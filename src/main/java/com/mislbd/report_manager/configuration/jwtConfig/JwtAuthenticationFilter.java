@@ -38,8 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
 
-            final String authHeader =
-                    request.getHeader(HttpHeaders.AUTHORIZATION);
+            final String authHeader =request.getHeader(HttpHeaders.AUTHORIZATION);
 
             // --------------------------------------------------
             // 1. No JWT supplied: continue without authentication
@@ -52,7 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // --------------------------------------------------
             // 2. Ignore headers that are not Bearer authentication
             // --------------------------------------------------
-            if (!authHeader.startsWith("Bearer ")) {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 filterChain.doFilter(request, response);
                 return;
             }

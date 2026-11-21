@@ -5,13 +5,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 @SpringBootApplication()
 @EnableWebMvc
 @EnableAspectJAutoProxy
-
+@EnableScheduling
 public class ReportManagerApplication  extends SpringBootServletInitializer {
 	// in project structure > project> java-22
 	//  in setting>build>gradle> Java-22
