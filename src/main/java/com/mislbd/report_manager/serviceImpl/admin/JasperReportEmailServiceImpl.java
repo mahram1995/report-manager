@@ -37,8 +37,8 @@ public class JasperReportEmailServiceImpl implements JasperReportEmailService {
 
         List<String> recipients = parseEmails(to);
         List<String> ccRecipients = null;
-        if(!cc.isEmpty()){
-            ccRecipients= parseEmails(cc);
+        if (cc != null && !cc.isBlank()) {
+            ccRecipients = parseEmails(cc);
         }
 
         if (recipients.isEmpty()) {

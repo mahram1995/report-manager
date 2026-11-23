@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -30,35 +31,34 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
     private final JasperReportSchedulerMapper mapper;
     private final JasperReportSchedulerHistoryService historyService;
     private final JasperReportEmailService reportEmailService;
-    private  final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
     private final JasperReportService reportService;
-    private  final JasperReportSchedulerHistoryRepository scheduleLogRepo;
-
+    private final JasperReportSchedulerHistoryRepository scheduleLogRepo;
 
 
     public void executeDueReports() {
 
         LocalDateTime now = LocalDateTime.now();
 
-        List<JasperReportSchedulerEntity> schedules =
-                repository
-                        .findByIsActiveTrueAndNextRunAtLessThanEqual(now);
+        List<JasperReportSchedulerEntity> schedules = repository.findByIsActiveTrueAndNextRunAtLessThanEqual(now);
 
         for (JasperReportSchedulerEntity schedule : schedules) {
             executeSingleSchedule(schedule);
         }
     }
 
-    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ResponseEntity<Object> checkReportSchedule(Long scheduleId) {
 
-        try{
-            executeSingleSchedule(repository.findById(scheduleId).get());
+
+        boolean isSuccess = executeSingleSchedule(repository.findById(scheduleId).get());
+        if (isSuccess) {
             return ResponseEntity.ok("Schedule Report Generate Successfully");
-        }catch (Exception e )
-        {
-            return ResponseEntity.ok("Schedule Report not Generate");
+
+        } else {
+            throw new RuntimeException("Schedule Report not Generate") ;
         }
+
 
     }
 
@@ -67,8 +67,9 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
         return new byte[0];
     }
 
-    private void executeSingleSchedule(JasperReportSchedulerEntity schedule) {
-
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    private boolean executeSingleSchedule(JasperReportSchedulerEntity schedule) {
+        byte[] reportData = new byte[0];
         LocalDateTime startTime = LocalDateTime.now();
 
         try {
@@ -77,22 +78,23 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
             if (reportParameters != null && !reportParameters.isBlank()) {
                 parameters = objectMapper.readValue(
                         reportParameters,
-                        new TypeReference<Map<String, Object>>() {}
+                        new TypeReference<Map<String, Object>>() {
+                        }
                 );
             }
 
-            JasperReportRequestDomain reportRequest=new JasperReportRequestDomain();
+            JasperReportRequestDomain reportRequest = new JasperReportRequestDomain();
             reportRequest.setReportFormat(schedule.getReportFormat());
             reportRequest.setReportName(schedule.getReportFileName());
             reportRequest.setJasperFileName(schedule.getReportFileName());
             reportRequest.setParameters(parameters);
 
             // 1. Execute report
-            byte[] reportData = reportService.runReport(reportRequest).getBody();
+            reportData = reportService.runReport(reportRequest).getBody();
 
 
             // 2. Send email only if report execution succeeds
-         Boolean isEmailSent=   reportEmailService.sendReport(
+            Boolean isEmailSent = reportEmailService.sendReport(
                     schedule.getEmailAddressTo(),
                     schedule.getEmailAddressCc(),
                     Boolean.TRUE.equals(
@@ -124,6 +126,8 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
                     isEmailSent
 
             );
+            repository.save(schedule);
+            return true;
 
         } catch (Exception ex) {
 
@@ -145,9 +149,9 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
                     LocalDateTime.now(),
                     ex
             );
+            repository.save(schedule);
+            throw new RuntimeException(ex.getMessage());
         }
-
-        repository.save(schedule);
     }
 
     public JasperReportSchedulerDomain save(
@@ -190,11 +194,11 @@ public class JasperReportSchedulerServiceImpl implements JasperReportSchedulerSe
     public JasperReportSchedulerDomain update(
             JasperReportSchedulerDomain domain
     ) {
-        long id=domain.getId();
+        long id = domain.getId();
 
         JasperReportSchedulerEntity existing =
                 repository.findById(id)
-                        .orElseThrow(() -> new IllegalArgumentException(    "Scheduler not found: " + id  ));
+                        .orElseThrow(() -> new IllegalArgumentException("Scheduler not found: " + id));
 
         domain.setId(id);
 

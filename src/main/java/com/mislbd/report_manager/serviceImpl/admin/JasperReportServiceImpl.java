@@ -22,7 +22,7 @@ import com.mislbd.report_manager.service.admin.JasperReportAuditLogService;
 import com.mislbd.report_manager.service.admin.JasperReportService;
 import com.mislbd.report_manager.utility.AppConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperPrint;
@@ -51,6 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 
 import javax.sql.DataSource;
 import javax.sql.rowset.serial.SerialClob;
@@ -410,6 +411,7 @@ public class JasperReportServiceImpl implements JasperReportService {
         return result;
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Override
     public ResponseEntity<byte[]> runReport(JasperReportRequestDomain request) throws IOException, JRException, SQLException {
         String reportFileName = request.getJasperFileName();
