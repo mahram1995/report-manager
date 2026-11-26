@@ -1,7 +1,6 @@
 package com.mislbd.report_manager.serviceImpl.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mislbd.jasper.CustomFunctions;
 import com.mislbd.report_manager.configuration.aopConfig.service.CommonService;
 import com.mislbd.report_manager.configuration.aopConfig.service.UtilityService;
 import com.mislbd.report_manager.domain.admin.JasperReportDomain;
@@ -82,7 +81,7 @@ public class JasperReportServiceImpl implements JasperReportService {
     private final DatabaseSubReportService subReportService;
     private final JasperQrcodeGenerationService qrcodeGenerationService;
     private  final UtilityService utilityService ;
-    private final .CustomFunctions
+
 
     @Autowired
     private ObjectMapper objectMapper;
