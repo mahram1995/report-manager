@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import javax.sql.rowset.serial.SerialClob;
+import java.io.Reader;
+import java.io.StringWriter;
 import java.sql.Clob;
 import java.util.HashMap;
 import java.util.Map;
@@ -69,4 +71,39 @@ public class UtilityServiceImpl implements UtilityService {
             throw new RuntimeException("CLOB to JSON conversion failed", e);
         }
     }
+
+    @Override
+    public Clob stringToClob(String value) {
+            try {
+                if (value == null) {
+                    return null;
+                }
+                return new SerialClob(value.toCharArray());
+            }catch (Exception e){
+                throw new RuntimeException(e.getMessage());
+            }
+        }
+
+    @Override
+    public String clobToString(Clob clob)  {
+        if (clob == null) {
+            return null;
+        }
+
+        try (Reader reader = clob.getCharacterStream();
+             StringWriter writer = new StringWriter()) {
+
+            char[] buffer = new char[4096];
+            int length;
+
+            while ((length = reader.read(buffer)) != -1) {
+                writer.write(buffer, 0, length);
+            }
+
+            return writer.toString();
+        }catch (Exception e){
+        throw new RuntimeException(e.getMessage());
+    }
+    }
+
 }

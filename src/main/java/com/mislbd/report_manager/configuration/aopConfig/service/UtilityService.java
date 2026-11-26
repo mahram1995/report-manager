@@ -10,4 +10,6 @@ public interface UtilityService {
     public Clob jsonToClob(Object data);
     public Map<String, Object> clobToMap(Clob clob);
     public String clobToJson(Clob clob);
+    public Clob stringToClob(String value) ;
+    public String clobToString(Clob clob)  ;
 }

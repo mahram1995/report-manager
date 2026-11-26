@@ -23,8 +23,9 @@ public class JasperReportDomain {
     private String verifyBy;
     private String updateBy;
     private byte[] reportContent;
+    private boolean isQrcodeEnable;
     private Integer executionTimeoutSeconds;
-    private byte[] sqlQueryForQrCode;
+    private String sqlQueryForQrCode;
     private Integer maxQrcodeScanLimit;
     private Integer daysOfQrCodeExpiry;
 }

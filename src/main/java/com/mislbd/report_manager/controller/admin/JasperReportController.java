@@ -99,6 +99,12 @@ public class JasperReportController {
 
         return ResponseEntity.ok(updated);
     }
+
+    @PutMapping("save-qrcode-info")
+    public ResponseEntity<JasperReportDomain> saveQrcodeInfo(
+            @RequestBody JasperReportDomain domain) {
+        return  jasperReportService.saveQrcodeInfo(domain);
+    }
     @GetMapping("/verify-qrcode")
     public ResponseEntity<Object> verifyQrcode(
             @RequestParam("securityToken") String securityToken) {
@@ -108,10 +114,12 @@ public class JasperReportController {
 
 
     @GetMapping("/get-jasper-reports")
-    public ResponseEntity<List<JasperReportDomain>> getJasperReports() {
+    public ResponseEntity<List<JasperReportDomain>> getJasperReports(
+            @RequestParam( name="isQrcodeEnable" , required = false) Boolean isQrcodeEnable,
+            @RequestParam(name="reportFileName", required = false) String reportFileName) {
 
         List<JasperReportDomain> reports =
-                jasperReportService.getJasperReports();
+                jasperReportService.getJasperReports(isQrcodeEnable,reportFileName);
 
         return ResponseEntity.ok(reports);
     }

@@ -76,12 +76,7 @@ public class JasperReportMapper {
         domain.setUpdateBy(entity.getUpdateBy());
         domain.setDaysOfQrCodeExpiry(entity.getDaysOfQrCodeExpiry());
         domain.setMaxQrcodeScanLimit(entity.getMaxQrcodeScanLimit());
-        domain.setSqlQueryForQrCode(
-                entity.getSqlQueryForQrCode() != null
-                        ? utilityService.clobToJson(entity.getSqlQueryForQrCode())
-                        .getBytes(StandardCharsets.UTF_8)
-                        : null
-        );
+        domain.setSqlQueryForQrCode(utilityService.clobToString(entity.getSqlQueryForQrCode()));
 
         return domain;
     }

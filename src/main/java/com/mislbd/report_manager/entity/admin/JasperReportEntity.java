@@ -26,6 +26,7 @@ public class JasperReportEntity extends BaseEntity  {
     @Column(name = "REPORT_CONTENT", nullable = false)
     private byte[] reportContent;
     private Integer executionTimeoutSeconds;
+    private boolean isQrcodeEnable;
     private Clob sqlQueryForQrCode;
     private Integer maxQrcodeScanLimit;
     private Integer daysOfQrCodeExpiry;

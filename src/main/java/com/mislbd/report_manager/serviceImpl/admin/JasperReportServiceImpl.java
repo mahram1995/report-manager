@@ -1,6 +1,7 @@
 package com.mislbd.report_manager.serviceImpl.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mislbd.jasper.CustomFunctions;
 import com.mislbd.report_manager.configuration.aopConfig.service.CommonService;
 import com.mislbd.report_manager.configuration.aopConfig.service.UtilityService;
 import com.mislbd.report_manager.domain.admin.JasperReportDomain;
@@ -80,6 +81,9 @@ public class JasperReportServiceImpl implements JasperReportService {
     private final DatabaseConfigRepository databaseConfigRepository;
     private final DatabaseSubReportService subReportService;
     private final JasperQrcodeGenerationService qrcodeGenerationService;
+    private  final UtilityService utilityService ;
+    private final .CustomFunctions
+
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -175,6 +179,37 @@ public class JasperReportServiceImpl implements JasperReportService {
     }
 
     @Override
+    public ResponseEntity<JasperReportDomain> saveQrcodeInfo(JasperReportDomain domain) {
+       try {
+           if (domain.getId() == null) {
+               throw new IllegalArgumentException("Report ID is required");
+           }
+
+           JasperReportEntity entity =
+                   jasperReportRepository.findById(domain.getId())
+                           .orElseThrow(() ->
+                                   new RuntimeException(
+                                           "Report not found with id: " + domain.getReportFileName()));
+
+           if (domain.getReportFileName() == null
+                   || domain.getReportFileName().trim().isEmpty()) {
+               throw new IllegalArgumentException(
+                       "Report file name is required");
+           }
+
+           entity.setQrcodeEnable(domain.isQrcodeEnable());
+           entity.setSqlQueryForQrCode(utilityService.stringToClob(domain.getSqlQueryForQrCode()));
+           entity.setMaxQrcodeScanLimit(domain.getMaxQrcodeScanLimit());
+           entity.setDaysOfQrCodeExpiry(domain.getDaysOfQrCodeExpiry());
+           jasperReportRepository.save(entity);
+           return ResponseEntity.ok(domain);
+       }catch (Exception e){
+           throw new RuntimeException(e.getMessage());
+       }
+
+    }
+
+    @Override
     @Transactional()
     public JasperReportDomain getByReportFileName(
             String reportFileName) {
@@ -197,8 +232,14 @@ public class JasperReportServiceImpl implements JasperReportService {
     }
 
     @Override
-    public List<JasperReportDomain> getJasperReports() {
-        List<JasperReportEntity> entities = jasperReportRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+    public List<JasperReportDomain> getJasperReports(  Boolean isQrcodeEnable,
+                                                       String reportFileName) {
+
+        if (reportFileName != null && reportFileName.isBlank()) {
+            reportFileName = null;
+        }
+
+        List<JasperReportEntity> entities =jasperReportRepository.findAllJasperReports(  isQrcodeEnable, reportFileName );
 
         return entities.stream().map(jasperReportMapper::entityToDomain).collect(Collectors.toList());
     }
